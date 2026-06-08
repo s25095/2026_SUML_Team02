@@ -1,1 +1,3 @@
 # 2026_SUML_Team02
+To generalnie do odpalania projektu używamy run_project.bat i on ma sprawdzać błędy i mówić co nie tak
+Na razie instaluje dependencies z requirements.txt i patrzy czy jest już data set pobrany. Jak nie ma to pobieran z Kaggle. Trzeba ustawić sobie API key tak jak prosi. Potem robi processing danych. Jak są już jakieś dane processed to pyta się czy nadpisać. Potem na razie nic nie robi, ale powinien trenować/pytać o trening autogluonem i odpalać następnie apkę itp itd

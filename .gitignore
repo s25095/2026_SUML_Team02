@@ -1,0 +1,23 @@
+# Python cache
+__pycache__/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment variables
+.env
+.env.*
+
+# Raw large datasets
+data/raw/*
+!data/raw/placeholder.gitkeep
+
+# Generated data
+data/processed/*
+!data/processed/placeholder.gitkeep
+
+# Trained models
+models/*
+!models/placeholder.gitkeep
