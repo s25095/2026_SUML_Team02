@@ -21,6 +21,7 @@ echo.
 
 set RAW_DATA=data\raw\Car_sale_ads.csv
 set PROCESSED_DATA=data\processed\car_prices_clean.csv
+set MODEL_PATH=models\autogluon_car_price
 set KAGGLE_TOKEN=%USERPROFILE%\.kaggle\access_token
 
 echo Step 1: Data preprocessing
@@ -89,10 +90,68 @@ goto preprocessing_done
 
 :preprocessing_done
 echo.
+echo Step 2: AutoGluon model training
+echo --------------------------------------
+
+if not exist "%PROCESSED_DATA%" (
+    echo Processed dataset not found:
+    echo %PROCESSED_DATA%
+    echo Run data preprocessing before model training.
+    goto end
+)
+
+if exist "%MODEL_PATH%" (
+    echo Trained model already exists:
+    echo %MODEL_PATH%
+    echo.
+    goto ask_retrain
+)
+
+goto run_training
+
+:run_training
+echo.
+echo Running AutoGluon model training...
+python src\model\train.py
+
+if errorlevel 1 (
+    echo.
+    echo AutoGluon model training failed.
+    goto end
+)
+
+echo AutoGluon model training finished successfully.
+goto training_done
+
+:ask_retrain
+set /p retrain=Retrain it? [Y/N]: 
+
+if /i "%retrain%"=="Y" goto run_training_overwrite
+if /i "%retrain%"=="YES" goto run_training_overwrite
+
+echo Skipping model training.
+goto training_done
+
+:run_training_overwrite
+echo.
+echo Retraining AutoGluon model...
+rmdir /s /q "%MODEL_PATH%"
+python src\model\train.py
+
+if errorlevel 1 (
+    echo.
+    echo AutoGluon model retraining failed.
+    goto end
+)
+
+echo AutoGluon model retraining finished successfully.
+goto training_done
+
+:training_done
+echo.
 echo Project setup finished.
 echo.
 echo Kolejne kroki tbd:
-echo - trenowanie modelu AutoGluonem
 echo - FastAPI
 echo - Streamlit
 
