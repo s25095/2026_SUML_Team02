@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Wycena auta</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
+  </head>
+  <body>
+    <main class="shell">
+      <section class="valuation">
+        <header class="page-header">
+          <p class="eyebrow">Predykcja ceny w PLN</p>
+          <h1>Wycena auta uzywanego</h1>
+        </header>
+
+        {% if errors %}
+          <div class="alert" role="alert">
+            {% for error in errors %}
+              <p>{{ error }}</p>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <form method="post" action="/predict" class="form-grid">
+          {% for field in fields %}
+            <label class="field">
+              <span>{{ field.label }}</span>
+              <input
+                name="{{ field.name }}"
+                type="{{ field.type }}"
+                placeholder="{{ field.placeholder }}"
+                value="{{ values.get(field.name, '') }}"
+                {% if field.min is defined %}min="{{ field.min }}"{% endif %}
+                {% if field.max is defined %}max="{{ field.max }}"{% endif %}
+                required
+              >
+            </label>
+          {% endfor %}
+
+          <button type="submit">Wycen auto</button>
+        </form>
+
+        {% if prediction %}
+          <section class="result" aria-live="polite">
+            <span>Szacowana cena</span>
+            <strong>{{ "{:,.0f}".format(prediction.predicted_price_pln).replace(",", " ") }} PLN</strong>
+            <small>Model: {{ prediction.model_name }}</small>
+          </section>
+        {% endif %}
+
+        {% if not model_available %}
+          <p class="status-note">Model nie jest jeszcze wytrenowany.</p>
+        {% endif %}
+      </section>
+    </main>
+  </body>
+</html>
