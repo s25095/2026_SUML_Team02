@@ -8,7 +8,7 @@ from typing import Any
 
 import uvicorn
 from fastapi import FastAPI, Form, Request, status
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
@@ -172,6 +172,11 @@ async def predict_form(
         context=template_context(request, values=form_values, prediction=prediction),
         request=request,
     )
+
+
+@app.get("/form/predict")
+async def predict_form_refresh() -> RedirectResponse:
+    return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @app.get("/health", response_model=HealthResponse)

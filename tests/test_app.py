@@ -188,3 +188,10 @@ def test_form_predict_uses_prediction_service(monkeypatch):
     assert "Wplyw parametrow" in response.text
     assert "Marka" in response.text
     assert "+2 000 PLN" in response.text
+
+
+def test_form_predict_get_redirects_to_index():
+    response = client.get("/form/predict", follow_redirects=False)
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "/"
