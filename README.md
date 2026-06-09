@@ -50,6 +50,18 @@ uv run build-model --force-download
 
 Kaggle API uzyje `KAGGLE_API_TOKEN` z `.env`.
 
+Jedna komenda do przygotowania brakujacych artefaktow i uruchomienia aplikacji:
+
+```bash
+uv run bootstrap-app
+```
+
+`bootstrap-app` uruchomi pelny pipeline, jesli brakuje processed datasetu. Jesli
+processed CSV istnieje, ale brakuje modelu, metadanych, metryk albo
+`feature_options.json`, wytrenuje model z istniejacych danych. Po przygotowaniu
+artefaktow odpali FastAPI z formularzem HTML. Dostepne sa tez flagi:
+`--force-download` oraz `--force-train`.
+
 Etapowe komendy przydatne podczas EDA/debugowania:
 
 1. Pobierz dataset z Kaggle:
@@ -88,8 +100,8 @@ uv run serve
 
 Strona HTML jest dostepna pod `http://127.0.0.1:8000/`.
 Aplikacja wymaga artefaktow z `models/`, wiec przed pierwszym uruchomieniem
-odpal `uv run build-model` albo przynajmniej `uv run train-model` na gotowym
-processed CSV.
+odpal `uv run bootstrap-app`, `uv run build-model` albo przynajmniej
+`uv run train-model` na gotowym processed CSV.
 
 ## API
 

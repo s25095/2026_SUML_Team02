@@ -31,6 +31,7 @@ dev = [
 
 [project.scripts]
 build-model = "car_price_prediction.pipeline:main"
+bootstrap-app = "car_price_prediction.app.bootstrap:main"
 download-data = "car_price_prediction.data.download:main"
 preprocess-data = "car_price_prediction.data.preprocessing:main"
 train-model = "car_price_prediction.model.train:main"
