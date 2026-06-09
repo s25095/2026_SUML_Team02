@@ -30,6 +30,10 @@ KAGGLE_API_TOKEN=twoj_kaggle_access_token
 
 Konfiguracja aplikacji jest ladowana przez Pydantic Settings z `.env` oraz zmiennych systemowych.
 
+Logi aplikacji trafiaja jednoczesnie do konsoli oraz do `logs/app.log`.
+Wygenerowane pliki logow sa ignorowane przez git; w repo zostaje tylko
+`logs/.gitkeep`.
+
 ## Workflow
 
 Pelny pipeline przygotowania modelu:

@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
 from car_price_prediction import config
+from car_price_prediction.logging_config import setup_logging
+
+
+logger = logging.getLogger(__name__)
 
 
 def validate_columns(data: pd.DataFrame, required_columns: list[str]) -> None:
@@ -168,13 +173,15 @@ def save_processed_data(
 
 
 def main() -> None:
+    setup_logging()
     raw_data = load_raw_data()
     processed_data = preprocess_data(raw_data)
     save_processed_data(processed_data)
 
-    print(
-        "Saved processed data: "
-        f"{config.PROCESSED_DATA_PATH} ({len(processed_data)} rows)"
+    logger.info(
+        "Saved processed data: %s (%s rows)",
+        config.PROCESSED_DATA_PATH,
+        len(processed_data),
     )
 
 

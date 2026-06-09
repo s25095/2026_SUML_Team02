@@ -1,15 +1,18 @@
 from __future__ import annotations
 
 import argparse
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
 from car_price_prediction import config
+from car_price_prediction.logging_config import setup_logging
 from car_price_prediction.model.train import load_processed_data, train_and_save_model
 from car_price_prediction.pipeline import run_pipeline
 
 
+logger = logging.getLogger(__name__)
 BootstrapAction = Literal["ready", "pipeline", "trained"]
 
 
@@ -47,7 +50,7 @@ def bootstrap_artifacts(
     config.ensure_project_directories()
 
     if force_download or not config.PROCESSED_DATA_PATH.exists():
-        print("Bootstrap: running full data/model pipeline")
+        logger.info("Bootstrap: running full data/model pipeline")
         pipeline_result = run_pipeline(force_download=force_download)
         return BootstrapResult(
             action="pipeline",
@@ -58,22 +61,22 @@ def bootstrap_artifacts(
     if force_train or missing_artifacts:
         if missing_artifacts:
             missing = ", ".join(display_path(path) for path in missing_artifacts)
-            print(f"Bootstrap: missing model artifacts: {missing}")
-        print("Bootstrap: training model from existing processed dataset")
+            logger.info("Bootstrap: missing model artifacts: %s", missing)
+        logger.info("Bootstrap: training model from existing processed dataset")
         training_data = load_processed_data()
         selected_model_name = train_and_save_model(training_data)
-        print(f"Selected model: {selected_model_name}")
-        print(f"Saved model: {config.MODEL_PATH}")
-        print(f"Saved metadata: {config.MODEL_METADATA_PATH}")
-        print(f"Saved metrics: {config.TRAINING_METRICS_PATH}")
-        print(f"Saved feature options: {config.FEATURE_OPTIONS_PATH}")
+        logger.info("Selected model: %s", selected_model_name)
+        logger.info("Saved model: %s", config.MODEL_PATH)
+        logger.info("Saved metadata: %s", config.MODEL_METADATA_PATH)
+        logger.info("Saved metrics: %s", config.TRAINING_METRICS_PATH)
+        logger.info("Saved feature options: %s", config.FEATURE_OPTIONS_PATH)
         return BootstrapResult(
             action="trained",
             missing_artifacts=missing_artifacts,
             selected_model_name=selected_model_name,
         )
 
-    print("Bootstrap: processed data and model artifacts are ready")
+    logger.info("Bootstrap: processed data and model artifacts are ready")
     return BootstrapResult(action="ready")
 
 
@@ -93,6 +96,7 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    setup_logging()
     bootstrap_artifacts(
         force_download=args.force_download,
         force_train=args.force_train,

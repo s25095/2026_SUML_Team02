@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -16,10 +17,12 @@ from pydantic import ValidationError
 from car_price_prediction import config
 from car_price_prediction.app.api import router as api_router
 from car_price_prediction.app.forms import form_fields
+from car_price_prediction.logging_config import setup_logging
 from car_price_prediction.model import predict as prediction_service
 from car_price_prediction.schemas import CarFeatures, HealthResponse, PredictionResponse
 
 
+logger = logging.getLogger(__name__)
 APP_DIR = Path(__file__).resolve().parent
 TEMPLATES_DIR = APP_DIR / "templates"
 STATIC_DIR = APP_DIR / "static"
@@ -27,8 +30,10 @@ STATIC_DIR = APP_DIR / "static"
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
-    prediction_service.warm_model_bundle()
+    setup_logging()
+    model_warmed = prediction_service.warm_model_bundle()
     form_fields()
+    logger.info("Application startup complete. Model warmed: %s", model_warmed)
     yield
 
 
@@ -148,6 +153,12 @@ async def predict_form(
             doors_number,
         )
         prediction = await asyncio.to_thread(prediction_service.predict_price, features)
+        logger.info(
+            "Rendered form prediction for %s %s: %.2f PLN",
+            vehicle_brand,
+            production_year,
+            prediction.predicted_price_pln,
+        )
     except ValidationError as error:
         return templates.TemplateResponse(
             name="index.html",
@@ -189,6 +200,8 @@ async def health() -> HealthResponse:
 
 
 def serve() -> None:
+    setup_logging()
+    logger.info("Starting FastAPI app on %s:%s", config.APP_HOST, config.APP_PORT)
     uvicorn.run(
         "car_price_prediction.app.main:app",
         host=config.APP_HOST,

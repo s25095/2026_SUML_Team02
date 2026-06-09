@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -23,10 +24,14 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 from car_price_prediction import config
 from car_price_prediction.feature_options import save_feature_options
+from car_price_prediction.logging_config import setup_logging
 from car_price_prediction.model.feature_names import (
     source_feature_name,
     transformed_feature_names,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -438,14 +443,15 @@ def train_and_save_model(
 
 
 def main() -> None:
+    setup_logging()
     data = load_processed_data()
     selected_model_name = train_and_save_model(data)
 
-    print(f"Selected model: {selected_model_name}")
-    print(f"Saved model: {config.MODEL_PATH}")
-    print(f"Saved metadata: {config.MODEL_METADATA_PATH}")
-    print(f"Saved metrics: {config.TRAINING_METRICS_PATH}")
-    print(f"Saved feature options: {config.FEATURE_OPTIONS_PATH}")
+    logger.info("Selected model: %s", selected_model_name)
+    logger.info("Saved model: %s", config.MODEL_PATH)
+    logger.info("Saved metadata: %s", config.MODEL_METADATA_PATH)
+    logger.info("Saved metrics: %s", config.TRAINING_METRICS_PATH)
+    logger.info("Saved feature options: %s", config.FEATURE_OPTIONS_PATH)
 
 
 if __name__ == "__main__":

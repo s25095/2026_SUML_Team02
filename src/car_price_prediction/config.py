@@ -61,6 +61,8 @@ RAW_DATA_DIR = DATA_DIR / "raw"
 PROCESSED_DATA_DIR = DATA_DIR / "processed"
 MODELS_DIR = REPO_ROOT / "models"
 NOTEBOOKS_DIR = REPO_ROOT / "notebooks"
+LOGS_DIR = REPO_ROOT / "logs"
+LOG_FILE_PATH = LOGS_DIR / "app.log"
 
 APP_HOST = settings.app_host
 APP_PORT = settings.app_port
@@ -186,5 +188,11 @@ def infer_vehicle_age_reference_year(
 
 
 def ensure_project_directories() -> None:
-    for directory in (RAW_DATA_DIR, PROCESSED_DATA_DIR, MODELS_DIR, NOTEBOOKS_DIR):
+    for directory in (
+        RAW_DATA_DIR,
+        PROCESSED_DATA_DIR,
+        MODELS_DIR,
+        NOTEBOOKS_DIR,
+        LOGS_DIR,
+    ):
         directory.mkdir(parents=True, exist_ok=True)

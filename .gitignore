@@ -28,6 +28,10 @@ data/processed/*
 models/*
 !models/placeholder.gitkeep
 
+# Logs
+logs/*
+!logs/.gitkeep
+
 # Notebook/runtime noise
 .ipynb_checkpoints/
 notebooks/.ipynb_checkpoints/

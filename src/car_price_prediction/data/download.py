@@ -1,10 +1,15 @@
 from __future__ import annotations
 
 import argparse
+import logging
 import os
 from typing import Protocol
 
 from car_price_prediction import config
+from car_price_prediction.logging_config import setup_logging
+
+
+logger = logging.getLogger(__name__)
 
 
 class KaggleApiClient(Protocol):
@@ -38,7 +43,7 @@ def download_dataset(force: bool = False) -> None:
     config.RAW_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
     if config.RAW_DATA_PATH.exists() and not force:
-        print(f"Raw dataset already exists: {config.RAW_DATA_PATH}")
+        logger.info("Raw dataset already exists: %s", config.RAW_DATA_PATH)
         return
 
     if not config.settings.has_kaggle_credentials():
@@ -69,10 +74,11 @@ def download_dataset(force: bool = False) -> None:
             f"{config.RAW_DATA_PATH}"
         )
 
-    print(f"Downloaded dataset to: {config.RAW_DATA_PATH}")
+    logger.info("Downloaded dataset to: %s", config.RAW_DATA_PATH)
 
 
 def main() -> None:
+    setup_logging()
     parser = argparse.ArgumentParser(description="Download the Kaggle car dataset.")
     parser.add_argument(
         "--force",
