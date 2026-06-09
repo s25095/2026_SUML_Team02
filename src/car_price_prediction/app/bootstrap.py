@@ -1,3 +1,5 @@
+"""Prepare missing model artifacts and start the FastAPI application."""
+
 from __future__ import annotations
 
 import argparse
@@ -7,6 +9,7 @@ from pathlib import Path
 from typing import Literal
 
 from car_price_prediction import config
+from car_price_prediction.app.main import serve
 from car_price_prediction.logging_config import setup_logging
 from car_price_prediction.model.train import load_processed_data, train_and_save_model
 from car_price_prediction.pipeline import run_pipeline
@@ -18,12 +21,16 @@ BootstrapAction = Literal["ready", "pipeline", "trained"]
 
 @dataclass(frozen=True)
 class BootstrapResult:
+    """Result describing which bootstrap action was required before serving."""
+
     action: BootstrapAction
     missing_artifacts: tuple[Path, ...] = ()
     selected_model_name: str | None = None
 
 
 def model_artifact_paths() -> tuple[Path, ...]:
+    """Return all files required by the prediction app at startup."""
+
     return (
         config.MODEL_PATH,
         config.MODEL_METADATA_PATH,
@@ -33,10 +40,14 @@ def model_artifact_paths() -> tuple[Path, ...]:
 
 
 def missing_model_artifacts() -> tuple[Path, ...]:
+    """Return missing model-side artifacts that require retraining."""
+
     return tuple(path for path in model_artifact_paths() if not path.exists())
 
 
 def display_path(path: Path) -> str:
+    """Format paths for logs, preferring repository-relative output."""
+
     try:
         return str(path.relative_to(config.REPO_ROOT))
     except ValueError:
@@ -47,6 +58,8 @@ def bootstrap_artifacts(
     force_download: bool = False,
     force_train: bool = False,
 ) -> BootstrapResult:
+    """Create missing data/model artifacts using the cheapest valid workflow."""
+
     config.ensure_project_directories()
 
     if force_download or not config.PROCESSED_DATA_PATH.exists():
@@ -81,6 +94,8 @@ def bootstrap_artifacts(
 
 
 def main() -> None:
+    """CLI entrypoint for `uv run bootstrap-app`."""
+
     parser = argparse.ArgumentParser(
         description="Prepare missing artifacts and start the FastAPI app."
     )
@@ -101,8 +116,6 @@ def main() -> None:
         force_download=args.force_download,
         force_train=args.force_train,
     )
-
-    from car_price_prediction.app.main import serve
 
     serve()
 

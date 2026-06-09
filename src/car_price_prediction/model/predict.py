@@ -1,3 +1,5 @@
+"""Prediction service for loading trained artifacts and explaining LightGBM output."""
+
 from __future__ import annotations
 
 import json
@@ -24,6 +26,8 @@ from car_price_prediction.schemas import (
 
 @dataclass(frozen=True)
 class ModelBundle:
+    """Loaded model pipeline with optional metadata saved during training."""
+
     model: Any
     metadata: dict[str, Any]
 
@@ -47,6 +51,8 @@ def features_to_frame(
     features: CarFeatures,
     vehicle_age_reference_year: int = config.MAX_PRODUCTION_YEAR,
 ) -> pd.DataFrame:
+    """Convert API features into the exact model input column order."""
+
     payload = features.model_dump(by_alias=True)
     production_year = payload.pop(config.PRODUCTION_YEAR_COLUMN)
     payload[config.VEHICLE_AGE_COLUMN] = vehicle_age_reference_year - production_year
@@ -54,6 +60,8 @@ def features_to_frame(
 
 
 def model_input_frame(pipeline: Any, frame: pd.DataFrame) -> pd.DataFrame:
+    """Apply preprocessing and preserve transformed feature names for LightGBM."""
+
     feature_names = transformed_feature_names(pipeline)
     preprocessor = required_pipeline_step(pipeline, "preprocessor")
     transformed = preprocessor.transform(frame)
@@ -64,6 +72,8 @@ def model_input_frame(pipeline: Any, frame: pd.DataFrame) -> pd.DataFrame:
 
 
 def is_lightgbm_bundle(bundle: ModelBundle) -> bool:
+    """Return whether the loaded bundle can produce LightGBM contributions."""
+
     model = required_pipeline_step(bundle.model, "model")
     selected_model = str(bundle.metadata.get("selected_model", "")).lower()
     model_class = model.__class__.__name__.lower()
@@ -71,6 +81,8 @@ def is_lightgbm_bundle(bundle: ModelBundle) -> bool:
 
 
 def format_integer(value: object) -> str:
+    """Format numeric values for Polish UI display without decimal places."""
+
     return f"{int(round(float(value))):,}".replace(",", " ")
 
 
@@ -79,6 +91,8 @@ def feature_display_value(
     frame: pd.DataFrame,
     features: CarFeatures,
 ) -> str:
+    """Format a source feature value for local explanation display."""
+
     value = frame.iloc[0][source_feature]
     if source_feature == config.VEHICLE_AGE_COLUMN:
         return f"{features.production_year} ({format_integer(value)} lat)"
@@ -96,6 +110,8 @@ def feature_display_value(
 def contribution_direction(
     contribution_pln: float,
 ) -> str:
+    """Convert a signed PLN contribution into a UI direction label."""
+
     if contribution_pln > 0:
         return "increases"
     if contribution_pln < 0:
@@ -112,6 +128,8 @@ def lightgbm_prediction_explanations(
     tuple[float, list[PredictionExplanationItem]]
     | tuple[None, list[PredictionExplanationItem]]
 ):
+    """Calculate per-feature local contributions for a LightGBM pipeline."""
+
     if not is_lightgbm_bundle(bundle):
         return None, []
 
@@ -165,6 +183,8 @@ def lightgbm_prediction_explanations(
 
 @lru_cache(maxsize=1)
 def load_model_bundle() -> ModelBundle:
+    """Load the trained model and metadata once per process."""
+
     if not config.MODEL_PATH.exists():
         raise FileNotFoundError(
             "Trained model is missing. Run `uv run train-model` first."
@@ -180,10 +200,14 @@ def load_model_bundle() -> ModelBundle:
 
 
 def model_available() -> bool:
+    """Return whether the expected trained model artifact exists."""
+
     return config.MODEL_PATH.exists()
 
 
 def warm_model_bundle() -> bool:
+    """Load the model during application startup when the artifact exists."""
+
     if not model_available():
         return False
 
@@ -192,6 +216,8 @@ def warm_model_bundle() -> bool:
 
 
 def predict_price(features: CarFeatures) -> PredictionResponse:
+    """Predict a car price and attach local explanations when supported."""
+
     bundle = load_model_bundle()
     vehicle_age_reference_year = bundle.metadata.get(
         "vehicle_age_reference_year",

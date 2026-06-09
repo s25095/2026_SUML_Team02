@@ -1,3 +1,5 @@
+"""Central project configuration and shared column/path constants."""
+
 from __future__ import annotations
 
 from collections.abc import Iterable
@@ -14,6 +16,8 @@ DOTENV_PATH = REPO_ROOT / ".env"
 
 
 class AppSettings(BaseSettings):
+    """Environment-backed runtime settings loaded from `.env` and OS env vars."""
+
     model_config = SettingsConfigDict(
         env_file=DOTENV_PATH,
         env_file_encoding="utf-8",
@@ -39,16 +43,22 @@ class AppSettings(BaseSettings):
     test_size: float = Field(default=0.2, gt=0, lt=1)
 
     def kaggle_env(self) -> dict[str, str]:
+        """Return environment variables expected by the Kaggle Python client."""
+
         env: dict[str, str] = {}
         if self.kaggle_api_token:
             env["KAGGLE_API_TOKEN"] = self.kaggle_api_token.get_secret_value()
         return env
 
     def kaggle_access_token_files(self) -> tuple[Path, Path]:
+        """Return default token-file locations supported by Kaggle access tokens."""
+
         kaggle_dir = Path.home() / ".kaggle"
         return kaggle_dir / "access_token", kaggle_dir / "access_token.txt"
 
     def has_kaggle_credentials(self) -> bool:
+        """Check whether Kaggle credentials are available without exposing secrets."""
+
         return bool(self.kaggle_api_token) or any(
             path.exists() for path in self.kaggle_access_token_files()
         )
@@ -164,6 +174,8 @@ def infer_vehicle_age_reference_year(
     production_years: Iterable[object],
     default: int | None = None,
 ) -> int:
+    """Infer the reference year used to convert production year into car age."""
+
     valid_years: list[int] = []
     for value in production_years:
         try:
@@ -188,6 +200,8 @@ def infer_vehicle_age_reference_year(
 
 
 def ensure_project_directories() -> None:
+    """Create all runtime directories used by data, model, notebook and log flows."""
+
     for directory in (
         RAW_DATA_DIR,
         PROCESSED_DATA_DIR,

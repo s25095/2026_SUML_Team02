@@ -1,3 +1,5 @@
+"""Build and load categorical form options from the processed training data."""
+
 from __future__ import annotations
 
 import json
@@ -57,6 +59,8 @@ DISPLAY_ORDER: dict[str, list[str]] = {
 
 
 def normalize_option_value(field_name: str, value: object) -> str | None:
+    """Normalize raw dataset values into stable strings used by HTML selects."""
+
     normalized = str(value).strip()
     if not normalized or normalized.lower() in {"nan", "none", "<na>"}:
         return None
@@ -71,6 +75,8 @@ def normalize_option_value(field_name: str, value: object) -> str | None:
 
 
 def ordered_values(field_name: str, counts: Counter[str]) -> list[str]:
+    """Order options by curated display order, then by training frequency."""
+
     display_order = DISPLAY_ORDER.get(field_name)
     if display_order:
         ordered = [value for value in display_order if value in counts]
@@ -87,6 +93,8 @@ def ordered_values(field_name: str, counts: Counter[str]) -> list[str]:
 
 
 def build_feature_options(data: pd.DataFrame) -> dict[str, Any]:
+    """Build a JSON-serializable dropdown artifact from processed training data."""
+
     missing_columns = sorted(set(SELECT_FEATURE_COLUMNS) - set(data.columns))
     if missing_columns:
         raise ValueError(
@@ -118,6 +126,8 @@ def save_feature_options(
     data: pd.DataFrame,
     output_path: Path = config.FEATURE_OPTIONS_PATH,
 ) -> dict[str, Any]:
+    """Persist dropdown options used by the app at startup."""
+
     artifact = build_feature_options(data)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("w", encoding="utf-8") as output_file:
@@ -128,6 +138,8 @@ def save_feature_options(
 def load_feature_options(
     input_path: Path = config.FEATURE_OPTIONS_PATH,
 ) -> dict[str, list[str]]:
+    """Load and validate the required dropdown options artifact."""
+
     if not input_path.exists():
         raise FileNotFoundError(
             "Feature options artifact is missing. Run `uv run build-model` first."

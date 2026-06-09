@@ -1,3 +1,5 @@
+"""Model selection, training and artifact persistence for car price regression."""
+
 from __future__ import annotations
 
 import json
@@ -36,12 +38,16 @@ logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class ModelCandidate:
+    """Named estimator candidate evaluated during model selection."""
+
     name: str
     estimator: BaseEstimator
 
 
 @dataclass(frozen=True)
 class ModelResult:
+    """Holdout metrics for one evaluated model candidate."""
+
     name: str
     rmse: float
     mae: float
@@ -51,6 +57,8 @@ class ModelResult:
 def load_processed_data(
     input_path: Path = config.PROCESSED_DATA_PATH,
 ) -> pd.DataFrame:
+    """Load the processed training dataset from disk."""
+
     if not input_path.exists():
         raise FileNotFoundError(f"Processed data file does not exist: {input_path}")
 
@@ -58,6 +66,8 @@ def load_processed_data(
 
 
 def build_preprocessor() -> ColumnTransformer:
+    """Build preprocessing for numeric scaling and categorical one-hot encoding."""
+
     numeric_pipeline = Pipeline(
         steps=[
             ("imputer", SimpleImputer(strategy="median")),
@@ -80,6 +90,8 @@ def build_preprocessor() -> ColumnTransformer:
 
 
 def build_pipeline(estimator: BaseEstimator) -> Pipeline:
+    """Wrap a regression estimator in the standard preprocessing pipeline."""
+
     return Pipeline(
         steps=[
             ("preprocessor", build_preprocessor()),
@@ -89,6 +101,8 @@ def build_pipeline(estimator: BaseEstimator) -> Pipeline:
 
 
 def default_model_candidates() -> list[ModelCandidate]:
+    """Return baseline and production-grade regressors compared by training."""
+
     return [
         ModelCandidate("dummy_median", DummyRegressor(strategy="median")),
         ModelCandidate("ridge", Ridge(alpha=1.0, random_state=config.RANDOM_STATE)),
@@ -127,6 +141,8 @@ def default_model_candidates() -> list[ModelCandidate]:
 
 
 def normalize_feature_missing_values(features: pd.DataFrame) -> pd.DataFrame:
+    """Convert pandas string missing values into sklearn-friendly nulls."""
+
     normalized = features.copy()
 
     for column in config.CATEGORICAL_FEATURE_COLUMNS:
@@ -140,6 +156,8 @@ def normalize_feature_missing_values(features: pd.DataFrame) -> pd.DataFrame:
 
 
 def ensure_vehicle_age_feature(data: pd.DataFrame) -> pd.DataFrame:
+    """Add vehicle age if a caller still provides production year only."""
+
     if config.VEHICLE_AGE_COLUMN in data.columns:
         return data
     if config.PRODUCTION_YEAR_COLUMN not in data.columns:
@@ -157,6 +175,8 @@ def ensure_vehicle_age_feature(data: pd.DataFrame) -> pd.DataFrame:
 
 
 def vehicle_age_reference_year_for_training(data: pd.DataFrame) -> int:
+    """Return the reference year persisted for production-year inference."""
+
     if config.PRODUCTION_YEAR_COLUMN not in data.columns:
         return config.MAX_PRODUCTION_YEAR
 
@@ -167,6 +187,8 @@ def vehicle_age_reference_year_for_training(data: pd.DataFrame) -> int:
 
 
 def split_features_target(data: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series]:
+    """Validate model columns and split cleaned data into features and target."""
+
     data = ensure_vehicle_age_feature(data)
     missing_columns = sorted(set(config.MODEL_COLUMNS) - set(data.columns))
     if missing_columns:
@@ -180,6 +202,8 @@ def split_features_target(data: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series]:
 def split_train_test(
     data: pd.DataFrame,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
+    """Create the deterministic holdout split used to compare model candidates."""
+
     features, target = split_features_target(data)
     return train_test_split(
         features,
@@ -190,6 +214,8 @@ def split_train_test(
 
 
 def calculate_metrics(y_true: pd.Series, predictions: np.ndarray) -> ModelResult:
+    """Calculate regression metrics used for candidate selection."""
+
     rmse = float(np.sqrt(mean_squared_error(y_true, predictions)))
     mae = float(mean_absolute_error(y_true, predictions))
     r2 = float(r2_score(y_true, predictions))
@@ -203,6 +229,8 @@ def evaluate_candidates(
     data: pd.DataFrame,
     candidates: list[ModelCandidate] | None = None,
 ) -> list[ModelResult]:
+    """Train every candidate on the holdout split and rank by RMSE."""
+
     candidates = candidates or default_model_candidates()
     x_train, x_test, y_train, y_test = split_train_test(data)
     results: list[ModelResult] = []
@@ -230,6 +258,8 @@ def select_model(
     baseline_model_name: str = "dummy_median",
     preferred_rmse_tolerance: float = 1.05,
 ) -> str:
+    """Choose LightGBM when close to best; otherwise choose best holdout RMSE."""
+
     if not results:
         raise ValueError("At least one model result is required.")
 
@@ -252,6 +282,8 @@ def train_final_pipeline(
     selected_model_name: str,
     candidates: list[ModelCandidate] | None = None,
 ) -> Pipeline:
+    """Fit the selected model on the full processed training dataset."""
+
     candidates = candidates or default_model_candidates()
     candidate_by_name = {candidate.name: candidate for candidate in candidates}
     if selected_model_name not in candidate_by_name:
@@ -264,6 +296,8 @@ def train_final_pipeline(
 
 
 def empty_feature_importance_frame() -> pd.DataFrame:
+    """Return the empty schema used when an estimator has no importance data."""
+
     return pd.DataFrame(
         columns=[
             "feature",
@@ -276,6 +310,8 @@ def empty_feature_importance_frame() -> pd.DataFrame:
 
 
 def model_feature_importance(pipeline: Pipeline) -> pd.DataFrame:
+    """Return transformed-feature importance for tree or linear estimators."""
+
     model = pipeline.named_steps["model"]
     importance_type = "feature_importance"
     values = getattr(model, "feature_importances_", None)
@@ -315,6 +351,8 @@ def model_feature_importance(pipeline: Pipeline) -> pd.DataFrame:
 
 
 def aggregate_feature_importance(pipeline: Pipeline) -> pd.DataFrame:
+    """Aggregate transformed-feature importance back to source columns."""
+
     importance = model_feature_importance(pipeline)
     if importance.empty:
         return pd.DataFrame(
@@ -341,6 +379,8 @@ def aggregate_feature_importance(pipeline: Pipeline) -> pd.DataFrame:
 
 
 def to_jsonable(value: Any) -> Any:
+    """Convert numpy scalars and non-finite floats before JSON serialization."""
+
     if isinstance(value, np.generic):
         value = value.item()
     if isinstance(value, float) and not np.isfinite(value):
@@ -349,6 +389,8 @@ def to_jsonable(value: Any) -> Any:
 
 
 def results_to_dicts(results: list[ModelResult]) -> list[dict[str, Any]]:
+    """Serialize model-selection results for the metrics artifact."""
+
     return [
         {
             "model_name": result.name,
@@ -361,6 +403,8 @@ def results_to_dicts(results: list[ModelResult]) -> list[dict[str, Any]]:
 
 
 def display_path(path: Path) -> str:
+    """Format artifact paths as repository-relative strings when possible."""
+
     try:
         return str(path.relative_to(config.REPO_ROOT))
     except ValueError:
@@ -378,6 +422,8 @@ def save_model_artifacts(
     metrics_path: Path = config.TRAINING_METRICS_PATH,
     feature_options_path: Path = config.FEATURE_OPTIONS_PATH,
 ) -> None:
+    """Persist the trained pipeline, metadata and model-comparison metrics."""
+
     model_path.parent.mkdir(parents=True, exist_ok=True)
 
     joblib.dump(pipeline, model_path)
@@ -419,6 +465,8 @@ def train_and_save_model(
     metrics_path: Path = config.TRAINING_METRICS_PATH,
     feature_options_path: Path = config.FEATURE_OPTIONS_PATH,
 ) -> str:
+    """Evaluate candidates, train the selected model and save all artifacts."""
+
     candidates = candidates or default_model_candidates()
     results = evaluate_candidates(data, candidates=candidates)
     selected_model_name = select_model(results)
@@ -443,6 +491,8 @@ def train_and_save_model(
 
 
 def main() -> None:
+    """CLI entrypoint for `uv run train-model`."""
+
     setup_logging()
     data = load_processed_data()
     selected_model_name = train_and_save_model(data)

@@ -1,3 +1,5 @@
+"""FastAPI application with HTML form and health endpoint."""
+
 from __future__ import annotations
 
 import asyncio
@@ -30,6 +32,8 @@ STATIC_DIR = APP_DIR / "static"
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    """Warm model and form artifacts during application startup."""
+
     setup_logging()
     model_warmed = prediction_service.warm_model_bundle()
     form_fields()
@@ -44,6 +48,8 @@ app.include_router(api_router)
 
 
 def empty_form_values() -> dict[str, Any]:
+    """Return default values for the first empty form render."""
+
     return {field["name"]: field.get("default", "") for field in form_fields()}
 
 
@@ -53,6 +59,8 @@ def template_context(
     prediction: PredictionResponse | None = None,
     errors: list[str] | None = None,
 ) -> dict[str, Any]:
+    """Build the common Jinja context used by all HTML responses."""
+
     return {
         "request": request,
         "fields": form_fields(),
@@ -64,6 +72,8 @@ def template_context(
 
 
 def validation_errors_to_text(error: ValidationError) -> list[str]:
+    """Convert Pydantic validation errors into readable form messages."""
+
     messages = []
     for item in error.errors():
         field = item.get("loc", ["field"])[0]
@@ -85,6 +95,8 @@ def build_features_from_form(
     body_type: str,
     doors_number: int,
 ) -> CarFeatures:
+    """Convert HTML form fields into the shared prediction schema."""
+
     return CarFeatures(
         Condition=condition,
         Vehicle_brand=vehicle_brand,
@@ -102,6 +114,8 @@ def build_features_from_form(
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request) -> HTMLResponse:
+    """Render the prediction form."""
+
     return templates.TemplateResponse(
         name="index.html",
         context=template_context(request),
@@ -124,6 +138,8 @@ async def predict_form(
     body_type: str = Form(..., alias="Type"),
     doors_number: int = Form(..., alias="Doors_number"),
 ) -> HTMLResponse:
+    """Handle HTML form submission and render the prediction result."""
+
     form_values = {
         "Condition": condition,
         "Vehicle_brand": vehicle_brand,
@@ -187,11 +203,15 @@ async def predict_form(
 
 @app.get("/form/predict")
 async def predict_form_refresh() -> RedirectResponse:
+    """Redirect direct GET refreshes of the form POST URL back to the form."""
+
     return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @app.get("/health", response_model=HealthResponse)
 async def health() -> HealthResponse:
+    """Return basic application and model-artifact health information."""
+
     return HealthResponse(
         status="ok",
         model_available=prediction_service.model_available(),
@@ -200,6 +220,8 @@ async def health() -> HealthResponse:
 
 
 def serve() -> None:
+    """CLI entrypoint for `uv run serve`."""
+
     setup_logging()
     logger.info("Starting FastAPI app on %s:%s", config.APP_HOST, config.APP_PORT)
     uvicorn.run(

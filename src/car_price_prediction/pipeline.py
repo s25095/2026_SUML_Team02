@@ -1,3 +1,5 @@
+"""End-to-end data preparation and model training pipeline."""
+
 from __future__ import annotations
 
 import argparse
@@ -21,6 +23,8 @@ logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class PipelineResult:
+    """Summary of artifacts produced by a full pipeline run."""
+
     raw_data_path: Path
     processed_data_path: Path
     model_path: Path
@@ -29,6 +33,8 @@ class PipelineResult:
 
 
 def run_pipeline(force_download: bool = False) -> PipelineResult:
+    """Download raw data, preprocess it, train the model and save artifacts."""
+
     config.ensure_project_directories()
 
     logger.info("Step 1/3: downloading raw dataset")
@@ -59,6 +65,8 @@ def run_pipeline(force_download: bool = False) -> PipelineResult:
 
 
 def main() -> None:
+    """CLI entrypoint for `uv run build-model`."""
+
     setup_logging()
     parser = argparse.ArgumentParser(
         description="Download, preprocess and train the car price model."

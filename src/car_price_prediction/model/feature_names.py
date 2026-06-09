@@ -1,3 +1,5 @@
+"""Helpers for mapping transformed model columns back to source features."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -8,6 +10,8 @@ from car_price_prediction import config
 
 
 def required_pipeline_step(pipeline: Any, step_name: str) -> Any:
+    """Return a required sklearn pipeline step or raise a clear artifact error."""
+
     if not hasattr(pipeline, "named_steps"):
         raise ValueError(
             "Trained model artifact must be a scikit-learn Pipeline with named steps."
@@ -22,11 +26,15 @@ def required_pipeline_step(pipeline: Any, step_name: str) -> Any:
 
 
 def transformed_feature_names(pipeline: Pipeline) -> list[str]:
+    """Return feature names produced by the fitted preprocessing step."""
+
     preprocessor = required_pipeline_step(pipeline, "preprocessor")
     return [str(feature) for feature in preprocessor.get_feature_names_out()]
 
 
 def source_feature_name(transformed_feature_name: str) -> str:
+    """Map a transformed numeric/one-hot feature back to its source column."""
+
     if "__" not in transformed_feature_name:
         return transformed_feature_name
 

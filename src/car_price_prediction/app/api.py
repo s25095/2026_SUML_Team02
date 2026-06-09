@@ -1,3 +1,5 @@
+"""JSON inference endpoints for the car price prediction service."""
+
 from __future__ import annotations
 
 import asyncio
@@ -22,6 +24,8 @@ router = APIRouter(prefix="/api", tags=["inference"])
     },
 )
 async def predict_api(features: CarFeatures) -> PredictionResponse:
+    """Predict car price from a validated JSON payload."""
+
     try:
         return await asyncio.to_thread(prediction_service.predict_price, features)
     except FileNotFoundError as error:

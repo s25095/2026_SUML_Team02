@@ -1,3 +1,5 @@
+"""Preprocessing rules for turning raw car listings into model-ready rows."""
+
 from __future__ import annotations
 
 import logging
@@ -14,6 +16,8 @@ logger = logging.getLogger(__name__)
 
 
 def validate_columns(data: pd.DataFrame, required_columns: list[str]) -> None:
+    """Fail fast when the raw dataset schema is missing required columns."""
+
     missing_columns = sorted(set(required_columns) - set(data.columns))
     if missing_columns:
         missing_text = ", ".join(missing_columns)
@@ -21,6 +25,8 @@ def validate_columns(data: pd.DataFrame, required_columns: list[str]) -> None:
 
 
 def load_raw_data(input_path: Path = config.RAW_DATA_PATH) -> pd.DataFrame:
+    """Load the raw Kaggle CSV from disk."""
+
     if not input_path.exists():
         raise FileNotFoundError(f"Input file does not exist: {input_path}")
 
@@ -28,14 +34,20 @@ def load_raw_data(input_path: Path = config.RAW_DATA_PATH) -> pd.DataFrame:
 
 
 def filter_pln_offers(data: pd.DataFrame) -> pd.DataFrame:
+    """Keep only PLN-denominated listings used by the target model."""
+
     return data[data[config.CURRENCY_COLUMN] == config.CURRENCY_TO_KEEP].copy()
 
 
 def select_model_columns(data: pd.DataFrame) -> pd.DataFrame:
+    """Limit raw data to target and source features used by the project."""
+
     return data.loc[:, config.SOURCE_MODEL_COLUMNS].copy()
 
 
 def clean_numeric_columns(data: pd.DataFrame) -> pd.DataFrame:
+    """Convert raw numeric columns to pandas numeric dtype with nulls on errors."""
+
     cleaned_data = data.copy()
 
     for column in config.NUMERIC_SOURCE_COLUMNS:
@@ -45,6 +57,8 @@ def clean_numeric_columns(data: pd.DataFrame) -> pd.DataFrame:
 
 
 def add_vehicle_age_feature(data: pd.DataFrame) -> pd.DataFrame:
+    """Add vehicle age using the newest valid production year in the dataset."""
+
     cleaned_data = data.copy()
     reference_year = config.infer_vehicle_age_reference_year(
         cleaned_data[config.PRODUCTION_YEAR_COLUMN]
@@ -56,6 +70,8 @@ def add_vehicle_age_feature(data: pd.DataFrame) -> pd.DataFrame:
 
 
 def nullify_unreliable_mileage(data: pd.DataFrame) -> pd.DataFrame:
+    """Replace impossible mileage values with nulls instead of clipping them."""
+
     cleaned_data = data.copy()
     valid_mileage = cleaned_data["Mileage_km"].between(
         config.MIN_MILEAGE_KM,
@@ -67,6 +83,8 @@ def nullify_unreliable_mileage(data: pd.DataFrame) -> pd.DataFrame:
 
 
 def nullify_unreliable_power(data: pd.DataFrame) -> pd.DataFrame:
+    """Replace impossible or placeholder horsepower values with nulls."""
+
     cleaned_data = data.copy()
     valid_power = cleaned_data["Power_HP"].between(
         config.MIN_POWER_HP,
@@ -78,6 +96,8 @@ def nullify_unreliable_power(data: pd.DataFrame) -> pd.DataFrame:
 
 
 def nullify_unreliable_displacement(data: pd.DataFrame) -> pd.DataFrame:
+    """Replace unrealistic engine displacement values with nulls."""
+
     cleaned_data = data.copy()
     valid_displacement = cleaned_data["Displacement_cm3"].between(
         config.MIN_DISPLACEMENT_CM3,
@@ -91,6 +111,8 @@ def nullify_unreliable_displacement(data: pd.DataFrame) -> pd.DataFrame:
 
 
 def nullify_unreliable_doors(data: pd.DataFrame) -> pd.DataFrame:
+    """Replace unreliable door counts outside the supported range with nulls."""
+
     cleaned_data = data.copy()
     valid_doors = cleaned_data["Doors_number"].between(
         config.MIN_DOORS_NUMBER,
@@ -102,6 +124,8 @@ def nullify_unreliable_doors(data: pd.DataFrame) -> pd.DataFrame:
 
 
 def nullify_recent_low_prices(data: pd.DataFrame) -> pd.DataFrame:
+    """Nullify likely lease-installment prices for recent cars."""
+
     cleaned_data = data.copy()
     recent_low_price = (
         cleaned_data[config.VEHICLE_AGE_COLUMN].notna()
@@ -114,6 +138,8 @@ def nullify_recent_low_prices(data: pd.DataFrame) -> pd.DataFrame:
 
 
 def clean_categorical_columns(data: pd.DataFrame) -> pd.DataFrame:
+    """Normalize string categories and represent blanks as missing values."""
+
     cleaned_data = data.copy()
 
     for column in config.CATEGORICAL_FEATURE_COLUMNS:
@@ -128,6 +154,8 @@ def clean_categorical_columns(data: pd.DataFrame) -> pd.DataFrame:
 
 
 def remove_invalid_rows(data: pd.DataFrame) -> pd.DataFrame:
+    """Drop rows that still cannot be used for supervised price training."""
+
     valid_rows = data[config.TARGET_COLUMN].notna()
     valid_rows &= data[config.TARGET_COLUMN] > 0
     valid_rows &= data[config.TARGET_COLUMN] <= config.MAX_TARGET_PRICE_PLN
@@ -140,10 +168,14 @@ def remove_invalid_rows(data: pd.DataFrame) -> pd.DataFrame:
 
 
 def drop_duplicate_rows(data: pd.DataFrame) -> pd.DataFrame:
+    """Remove exact duplicate rows across features and target."""
+
     return data.drop_duplicates(subset=config.PROCESSED_COLUMNS).copy()
 
 
 def preprocess_data(data: pd.DataFrame) -> pd.DataFrame:
+    """Apply all cleaning rules and return the final processed dataset."""
+
     required_columns = [config.CURRENCY_COLUMN, *config.SOURCE_MODEL_COLUMNS]
     validate_columns(data, required_columns)
 
@@ -168,11 +200,15 @@ def save_processed_data(
     data: pd.DataFrame,
     output_path: Path = config.PROCESSED_DATA_PATH,
 ) -> None:
+    """Save processed data as the canonical training CSV."""
+
     output_path.parent.mkdir(parents=True, exist_ok=True)
     data.to_csv(output_path, index=False)
 
 
 def main() -> None:
+    """CLI entrypoint for `uv run preprocess-data`."""
+
     setup_logging()
     raw_data = load_raw_data()
     processed_data = preprocess_data(raw_data)

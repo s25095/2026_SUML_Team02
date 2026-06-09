@@ -1,3 +1,5 @@
+"""Kaggle dataset download helpers using the official Python client."""
+
 from __future__ import annotations
 
 import argparse
@@ -13,7 +15,11 @@ logger = logging.getLogger(__name__)
 
 
 class KaggleApiClient(Protocol):
+    """Subset of Kaggle API methods used by the downloader."""
+
     def authenticate(self) -> None:
+        """Authenticate the Kaggle API client."""
+
         ...
 
     def dataset_download_files(
@@ -24,14 +30,20 @@ class KaggleApiClient(Protocol):
         quiet: bool = True,
         unzip: bool = False,
     ) -> None:
+        """Download files for one Kaggle dataset."""
+
         ...
 
 
 def apply_kaggle_environment() -> None:
+    """Expose configured Kaggle access token as environment variables."""
+
     os.environ.update(config.settings.kaggle_env())
 
 
 def build_kaggle_api() -> KaggleApiClient:
+    """Build and authenticate the Kaggle API client lazily."""
+
     from kaggle.api.kaggle_api_extended import KaggleApi
 
     api = KaggleApi()
@@ -40,6 +52,8 @@ def build_kaggle_api() -> KaggleApiClient:
 
 
 def download_dataset(force: bool = False) -> None:
+    """Download and unzip the configured Kaggle dataset when needed."""
+
     config.RAW_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
     if config.RAW_DATA_PATH.exists() and not force:
@@ -56,6 +70,7 @@ def download_dataset(force: bool = False) -> None:
     api = build_kaggle_api()
 
     try:
+        logger.info("Downloading Kaggle dataset: %s", config.KAGGLE_DATASET_ID)
         api.dataset_download_files(
             config.KAGGLE_DATASET_ID,
             path=str(config.RAW_DATA_DIR),
@@ -78,6 +93,8 @@ def download_dataset(force: bool = False) -> None:
 
 
 def main() -> None:
+    """CLI entrypoint for `uv run download-data`."""
+
     setup_logging()
     parser = argparse.ArgumentParser(description="Download the Kaggle car dataset.")
     parser.add_argument(

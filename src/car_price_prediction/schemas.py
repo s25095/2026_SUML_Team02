@@ -1,3 +1,5 @@
+"""Pydantic schemas used by JSON API, HTML forms and prediction responses."""
+
 from __future__ import annotations
 
 from typing import Any, Literal
@@ -23,6 +25,8 @@ EXAMPLE_FEATURES: dict[str, Any] = {
 
 
 class CarFeatures(BaseModel):
+    """Validated source-level car features accepted by the prediction API."""
+
     model_config = ConfigDict(
         populate_by_name=True,
         extra="forbid",
@@ -103,6 +107,8 @@ class CarFeatures(BaseModel):
 
 
 class PredictionExplanationItem(BaseModel):
+    """Single local LightGBM contribution for one source feature."""
+
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
@@ -140,6 +146,8 @@ class PredictionExplanationItem(BaseModel):
 
 
 class PredictionResponse(BaseModel):
+    """Prediction payload returned by JSON API and rendered by the HTML app."""
+
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
@@ -207,6 +215,8 @@ class PredictionResponse(BaseModel):
 
 
 class HealthResponse(BaseModel):
+    """Health-check payload exposing model artifact availability."""
+
     model_config = ConfigDict(
         json_schema_extra={
             "example": {

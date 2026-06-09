@@ -1,3 +1,5 @@
+"""HTML form field definitions built from training-time feature options."""
+
 from __future__ import annotations
 
 from functools import lru_cache
@@ -70,6 +72,8 @@ OPTION_LABELS: dict[str, dict[str, str]] = {
 
 
 def option(field_name: str, value: str) -> dict[str, str]:
+    """Build one select option with a user-facing label."""
+
     return {
         "value": value,
         "label": OPTION_LABELS.get(field_name, {}).get(value, value),
@@ -77,6 +81,8 @@ def option(field_name: str, value: str) -> dict[str, str]:
 
 
 def default_value(field_name: str, options: list[str]) -> str:
+    """Choose the preferred default when it exists in training options."""
+
     if not options:
         raise ValueError(f"No options available for field: {field_name}")
 
@@ -92,6 +98,8 @@ def select_field(
     label: str,
     options_by_field: dict[str, list[str]],
 ) -> dict[str, Any]:
+    """Build a select field from the generated feature-options artifact."""
+
     if name not in options_by_field:
         raise KeyError(f"Missing options for select field: {name}")
 
@@ -111,6 +119,8 @@ def number_field(
     minimum: int,
     maximum: int,
 ) -> dict[str, Any]:
+    """Build a bounded numeric form field."""
+
     return {
         "name": name,
         "label": label,
@@ -125,6 +135,8 @@ def number_field(
 def build_form_fields(
     options_by_field: dict[str, list[str]] | None = None,
 ) -> list[dict[str, Any]]:
+    """Return all fields required by the HTML prediction form."""
+
     options = options_by_field or load_feature_options()
 
     return [
@@ -168,4 +180,6 @@ def build_form_fields(
 
 @lru_cache(maxsize=1)
 def form_fields() -> list[dict[str, Any]]:
+    """Return cached form fields loaded at FastAPI startup."""
+
     return build_form_fields()
