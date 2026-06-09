@@ -1,14 +1,20 @@
 # Python cache
 __pycache__/
+*.pyc
+.pytest_cache/
 
 # Virtual environments
 .venv/
 venv/
 env/
 
+# IDE settings
+.idea/
+
 # Environment variables
 .env
 .env.*
+!.env.example
 
 # Raw large datasets
 data/raw/*
@@ -21,3 +27,11 @@ data/processed/*
 # Trained models
 models/*
 !models/placeholder.gitkeep
+
+# Logs
+logs/*
+!logs/.gitkeep
+
+# Notebook/runtime noise
+.ipynb_checkpoints/
+notebooks/.ipynb_checkpoints/

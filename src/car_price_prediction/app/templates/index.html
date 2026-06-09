@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Wycena auta</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
+  </head>
+  <body>
+    <main class="shell">
+      <section class="valuation">
+        <header class="page-header">
+          <p class="eyebrow">Predykcja ceny w PLN</p>
+          <h1>Wycena auta uzywanego</h1>
+        </header>
+
+        {% if errors %}
+          <div class="alert" role="alert">
+            {% for error in errors %}
+              <p>{{ error }}</p>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <form method="post" action="/form/predict" class="form-grid">
+          {% for field in fields %}
+            <label class="field">
+              <span>{{ field.label }}</span>
+              {% set field_value = values.get(field.name, field.default) %}
+              {% if field.options is defined %}
+                <select name="{{ field.name }}" required>
+                  {% for option in field.options %}
+                    <option
+                      value="{{ option.value }}"
+                      {% if field_value|string == option.value|string %}selected{% endif %}
+                    >
+                      {{ option.label }}
+                    </option>
+                  {% endfor %}
+                </select>
+              {% else %}
+                <input
+                  name="{{ field.name }}"
+                  type="{{ field.type }}"
+                  placeholder="{{ field.placeholder }}"
+                  value="{{ field_value }}"
+                  {% if field.min is defined %}min="{{ field.min }}"{% endif %}
+                  {% if field.max is defined %}max="{{ field.max }}"{% endif %}
+                  required
+                >
+              {% endif %}
+            </label>
+          {% endfor %}
+
+          <button type="submit">Wycen auto</button>
+        </form>
+
+        {% if prediction %}
+          <section class="result-panel" aria-live="polite">
+            <div class="result">
+              <span>Szacowana cena</span>
+              <strong>{{ "{:,.0f}".format(prediction.predicted_price_pln).replace(",", " ") }} PLN</strong>
+              <small>Model: {{ prediction.model_name }}</small>
+            </div>
+
+            {% if prediction.explanations %}
+              <section class="explanations" aria-label="Wplyw parametrow">
+                <header class="explanations-header">
+                  <div>
+                    <span>Wplyw parametrow</span>
+                    <h2>Co podnioslo lub obnizylo wycene</h2>
+                  </div>
+                  {% if prediction.base_value_pln is not none %}
+                    <p>
+                      Baza modelu:
+                      <strong>{{ "{:,.0f}".format(prediction.base_value_pln).replace(",", " ") }} PLN</strong>
+                    </p>
+                  {% endif %}
+                </header>
+
+                <ul class="impact-list">
+                  {% for item in prediction.explanations %}
+                    <li class="impact-item">
+                      <div>
+                        <span class="impact-name">{{ item.display_name }}</span>
+                        <small>{{ item.feature_value }}</small>
+                      </div>
+                      <strong class="impact-value {{ item.direction }}">
+                        {{ "{:+,.0f}".format(item.contribution_pln).replace(",", " ") }} PLN
+                      </strong>
+                    </li>
+                  {% endfor %}
+                </ul>
+              </section>
+            {% endif %}
+          </section>
+        {% endif %}
+
+        {% if not model_available %}
+          <p class="status-note">Model nie jest jeszcze wytrenowany.</p>
+        {% endif %}
+      </section>
+    </main>
+  </body>
+</html>

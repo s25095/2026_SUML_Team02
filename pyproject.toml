@@ -1,0 +1,49 @@
+[project]
+name = "car-price-prediction"
+version = "0.1.0"
+description = "FastAPI web app for used car price prediction in PLN."
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi>=0.115,<1.0",
+    "jinja2>=3.1,<4",
+    "joblib>=1.4,<2",
+    "kaggle>=1.6,<2",
+    "lightgbm>=4.5,<5",
+    "numpy>=1.26,<3",
+    "pandas>=2.2,<3",
+    "pydantic>=2.10,<3",
+    "pydantic-settings>=2.7,<3",
+    "python-multipart>=0.0.20,<1",
+    "scikit-learn>=1.6,<2",
+    "uvicorn[standard]>=0.34,<1.0",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.27,<1",
+    "ipykernel>=6.29,<7",
+    "jupyterlab>=4.3,<5",
+    "matplotlib>=3.9,<4",
+    "pytest>=8.3,<9",
+    "seaborn>=0.13,<1",
+]
+
+[project.scripts]
+build-model = "car_price_prediction.pipeline:main"
+bootstrap-app = "car_price_prediction.app.bootstrap:main"
+download-data = "car_price_prediction.data.download:main"
+preprocess-data = "car_price_prediction.data.preprocessing:main"
+train-model = "car_price_prediction.model.train:main"
+serve = "car_price_prediction.app.main:serve"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/car_price_prediction"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
