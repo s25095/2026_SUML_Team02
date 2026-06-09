@@ -8,7 +8,8 @@ from car_price_prediction import config
 
 
 class KaggleApiClient(Protocol):
-    def authenticate(self) -> None: ...
+    def authenticate(self) -> None:
+        ...
 
     def dataset_download_files(
         self,
@@ -17,7 +18,8 @@ class KaggleApiClient(Protocol):
         force: bool = False,
         quiet: bool = True,
         unzip: bool = False,
-    ) -> None: ...
+    ) -> None:
+        ...
 
 
 def apply_kaggle_environment() -> None:

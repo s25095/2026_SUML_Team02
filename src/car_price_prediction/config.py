@@ -184,6 +184,7 @@ def infer_vehicle_age_reference_year(
 
     raise ValueError("Cannot infer vehicle age reference year from the dataset.")
 
+
 def ensure_project_directories() -> None:
     for directory in (RAW_DATA_DIR, PROCESSED_DATA_DIR, MODELS_DIR, NOTEBOOKS_DIR):
         directory.mkdir(parents=True, exist_ok=True)

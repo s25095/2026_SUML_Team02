@@ -18,8 +18,12 @@ def test_run_pipeline_downloads_preprocesses_and_trains(monkeypatch, tmp_path):
     monkeypatch.setattr(pipeline.config, "RAW_DATA_PATH", raw_path)
     monkeypatch.setattr(pipeline.config, "PROCESSED_DATA_PATH", processed_path)
     monkeypatch.setattr(pipeline.config, "MODEL_PATH", model_path)
-    monkeypatch.setattr(pipeline.config, "MODEL_METADATA_PATH", tmp_path / "metadata.json")
-    monkeypatch.setattr(pipeline.config, "TRAINING_METRICS_PATH", tmp_path / "metrics.json")
+    monkeypatch.setattr(
+        pipeline.config, "MODEL_METADATA_PATH", tmp_path / "metadata.json"
+    )
+    monkeypatch.setattr(
+        pipeline.config, "TRAINING_METRICS_PATH", tmp_path / "metrics.json"
+    )
     monkeypatch.setattr(
         pipeline.config,
         "ensure_project_directories",

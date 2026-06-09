@@ -144,9 +144,7 @@ def load_feature_options(
     for field_name in SELECT_FEATURE_COLUMNS:
         raw_values = fields.get(field_name)
         if not isinstance(raw_values, list):
-            raise ValueError(
-                f"Missing feature options for {field_name}: {input_path}"
-            )
+            raise ValueError(f"Missing feature options for {field_name}: {input_path}")
 
         values = [
             value

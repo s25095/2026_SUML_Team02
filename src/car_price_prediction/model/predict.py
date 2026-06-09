@@ -108,7 +108,10 @@ def lightgbm_prediction_explanations(
     transformed_frame: pd.DataFrame,
     frame: pd.DataFrame,
     features: CarFeatures,
-) -> tuple[float, list[PredictionExplanationItem]] | tuple[None, list[PredictionExplanationItem]]:
+) -> (
+    tuple[float, list[PredictionExplanationItem]]
+    | tuple[None, list[PredictionExplanationItem]]
+):
     if not is_lightgbm_bundle(bundle):
         return None, []
 

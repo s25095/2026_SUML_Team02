@@ -46,10 +46,7 @@ def lightgbm_training_frame() -> pd.DataFrame:
         "Opel",
         *[f"Brand_{index}" for index in range(30)],
     ]
-    brand_bonus = {
-        brand: index * 700
-        for index, brand in enumerate(brands)
-    }
+    brand_bonus = {brand: index * 700 for index, brand in enumerate(brands)}
     for index in range(72):
         brand = brands[index % len(brands)]
         year = 2008 + index % 12
