@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from car_price_prediction.config import AppSettings
+import pytest
+
+from car_price_prediction.config import AppSettings, infer_vehicle_age_reference_year
 
 
 def test_settings_reads_dotenv_values(tmp_path):
@@ -35,3 +37,16 @@ def test_settings_supports_kaggle_access_token():
 
     assert settings.has_kaggle_credentials()
     assert settings.kaggle_env() == {"KAGGLE_API_TOKEN": "test-token"}
+
+
+def test_infer_vehicle_age_reference_year_ignores_invalid_values():
+    assert infer_vehicle_age_reference_year([None, "not-a-year", 2019, 2021]) == 2021
+
+
+def test_infer_vehicle_age_reference_year_uses_default_when_requested():
+    assert infer_vehicle_age_reference_year(["bad"], default=2026) == 2026
+
+
+def test_infer_vehicle_age_reference_year_raises_without_valid_values():
+    with pytest.raises(ValueError, match="Cannot infer"):
+        infer_vehicle_age_reference_year(["bad"])

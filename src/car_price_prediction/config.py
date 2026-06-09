@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from datetime import date
+import math
 from pathlib import Path
 
 from pydantic import Field, SecretStr
@@ -76,11 +78,13 @@ TRAINING_METRICS_PATH = MODELS_DIR / settings.training_metrics_filename
 TARGET_COLUMN = "Price"
 CURRENCY_COLUMN = "Currency"
 CURRENCY_TO_KEEP = "PLN"
+PRODUCTION_YEAR_COLUMN = "Production_year"
+VEHICLE_AGE_COLUMN = "Vehicle_age_years"
 
-FEATURE_COLUMNS = [
+SOURCE_FEATURE_COLUMNS = [
     "Condition",
     "Vehicle_brand",
-    "Production_year",
+    PRODUCTION_YEAR_COLUMN,
     "Mileage_km",
     "Power_HP",
     "Displacement_cm3",
@@ -91,10 +95,26 @@ FEATURE_COLUMNS = [
     "Doors_number",
 ]
 
+FEATURE_COLUMNS = [
+    "Condition",
+    "Vehicle_brand",
+    VEHICLE_AGE_COLUMN,
+    "Mileage_km",
+    "Power_HP",
+    "Displacement_cm3",
+    "Fuel_type",
+    "Drive",
+    "Transmission",
+    "Type",
+    "Doors_number",
+]
+
+SOURCE_MODEL_COLUMNS = [TARGET_COLUMN, *SOURCE_FEATURE_COLUMNS]
 MODEL_COLUMNS = [TARGET_COLUMN, *FEATURE_COLUMNS]
+PROCESSED_COLUMNS = [TARGET_COLUMN, PRODUCTION_YEAR_COLUMN, *FEATURE_COLUMNS]
 
 NUMERIC_FEATURE_COLUMNS = [
-    "Production_year",
+    VEHICLE_AGE_COLUMN,
     "Mileage_km",
     "Power_HP",
     "Displacement_cm3",
@@ -110,12 +130,57 @@ CATEGORICAL_FEATURE_COLUMNS = [
     "Type",
 ]
 
-NUMERIC_COLUMNS = [TARGET_COLUMN, *NUMERIC_FEATURE_COLUMNS]
+NUMERIC_SOURCE_COLUMNS = [
+    TARGET_COLUMN,
+    PRODUCTION_YEAR_COLUMN,
+    "Mileage_km",
+    "Power_HP",
+    "Displacement_cm3",
+    "Doors_number",
+]
 
 MIN_PRODUCTION_YEAR = 1900
 MAX_PRODUCTION_YEAR = date.today().year
+MIN_MILEAGE_KM = 0
+MAX_MILEAGE_KM = 1_000_000
+MIN_POWER_HP = 2
+MAX_POWER_HP = 900
+MIN_DISPLACEMENT_CM3 = 1
+MAX_DISPLACEMENT_CM3 = 9_000
+MIN_DOORS_NUMBER = 1
+MAX_DOORS_NUMBER = 6
+RECENT_CAR_MAX_AGE_YEARS = 5
+MIN_RECENT_CAR_PRICE_PLN = 1_000
+MAX_TARGET_PRICE_PLN = 3_000_000
 RANDOM_STATE = settings.random_state
 TEST_SIZE = settings.test_size
+
+
+def infer_vehicle_age_reference_year(
+    production_years: Iterable[object],
+    default: int | None = None,
+) -> int:
+    valid_years: list[int] = []
+    for value in production_years:
+        try:
+            numeric_value = float(value)
+        except (TypeError, ValueError):
+            continue
+
+        if not math.isfinite(numeric_value):
+            continue
+
+        year = int(numeric_value)
+        if MIN_PRODUCTION_YEAR <= year <= MAX_PRODUCTION_YEAR:
+            valid_years.append(year)
+
+    if valid_years:
+        return max(valid_years)
+
+    if default is not None:
+        return default
+
+    raise ValueError("Cannot infer vehicle age reference year from the dataset.")
 
 def ensure_project_directories() -> None:
     for directory in (RAW_DATA_DIR, PROCESSED_DATA_DIR, MODELS_DIR, NOTEBOOKS_DIR):

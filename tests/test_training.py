@@ -3,10 +3,19 @@ from __future__ import annotations
 import json
 
 import pandas as pd
+import pytest
 from sklearn.dummy import DummyRegressor
 from sklearn.linear_model import Ridge
 
-from car_price_prediction.model.train import ModelCandidate, train_and_save_model
+from car_price_prediction.data.preprocessing import preprocess_data
+from car_price_prediction.model.train import (
+    ModelCandidate,
+    aggregate_feature_importance,
+    evaluate_candidates,
+    model_feature_importance,
+    train_and_save_model,
+    train_final_pipeline,
+)
 
 
 def training_frame() -> pd.DataFrame:
@@ -35,6 +44,40 @@ def training_frame() -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def raw_training_frame_with_missing_categories() -> pd.DataFrame:
+    data = training_frame()
+    data.insert(0, "Currency", "PLN")
+    data.loc[0, "Drive"] = " "
+    data.loc[1, "Fuel_type"] = None
+    return data
+
+
+def test_evaluate_candidates_accepts_direct_preprocessed_data():
+    candidates = [
+        ModelCandidate("dummy_median", DummyRegressor(strategy="median")),
+        ModelCandidate("ridge", Ridge(alpha=1.0)),
+    ]
+
+    data = preprocess_data(raw_training_frame_with_missing_categories())
+    results = evaluate_candidates(data, candidates=candidates)
+
+    assert {result.name for result in results} == {"dummy_median", "ridge"}
+
+
+def test_evaluate_candidates_accepts_pandas_na_categoricals():
+    candidates = [
+        ModelCandidate("dummy_median", DummyRegressor(strategy="median")),
+        ModelCandidate("ridge", Ridge(alpha=1.0)),
+    ]
+    data = training_frame()
+    data.loc[0, "Drive"] = pd.NA
+    data.loc[1, "Fuel_type"] = pd.NA
+
+    results = evaluate_candidates(data, candidates=candidates)
+
+    assert {result.name for result in results} == {"dummy_median", "ridge"}
+
+
 def test_train_and_save_model_creates_artifacts(tmp_path):
     candidates = [
         ModelCandidate("dummy_median", DummyRegressor(strategy="median")),
@@ -57,4 +100,26 @@ def test_train_and_save_model_creates_artifacts(tmp_path):
 
     assert metadata["selected_model"] == selected
     assert metadata["feature_columns"]
+    assert "Vehicle_age_years" in metadata["feature_columns"]
+    assert "Production_year" not in metadata["feature_columns"]
+    assert metadata["vehicle_age_reference_year"] == 2019
     assert len(metrics["models"]) == 2
+
+
+def test_feature_importance_maps_transformed_features_to_source_columns():
+    candidates = [ModelCandidate("ridge", Ridge(alpha=1.0))]
+    pipeline = train_final_pipeline(
+        training_frame(),
+        selected_model_name="ridge",
+        candidates=candidates,
+    )
+
+    transformed_importance = model_feature_importance(pipeline)
+    source_importance = aggregate_feature_importance(pipeline)
+
+    assert not transformed_importance.empty
+    assert not source_importance.empty
+    assert "Vehicle_age_years" in set(source_importance["source_feature"])
+    assert "Vehicle_brand" in set(source_importance["source_feature"])
+    assert transformed_importance["importance_type"].eq("absolute_coefficient").all()
+    assert source_importance["importance_share"].sum() == pytest.approx(1.0)

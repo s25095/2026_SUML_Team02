@@ -23,14 +23,34 @@ class CarFeatures(BaseModel):
         ge=config.MIN_PRODUCTION_YEAR,
         le=config.MAX_PRODUCTION_YEAR,
     )
-    mileage_km: int = Field(..., alias="Mileage_km", ge=0)
-    power_hp: int = Field(..., alias="Power_HP", gt=0)
-    displacement_cm3: int = Field(..., alias="Displacement_cm3", gt=0)
+    mileage_km: int = Field(
+        ...,
+        alias="Mileage_km",
+        ge=config.MIN_MILEAGE_KM,
+        le=config.MAX_MILEAGE_KM,
+    )
+    power_hp: int = Field(
+        ...,
+        alias="Power_HP",
+        ge=config.MIN_POWER_HP,
+        le=config.MAX_POWER_HP,
+    )
+    displacement_cm3: int = Field(
+        ...,
+        alias="Displacement_cm3",
+        ge=config.MIN_DISPLACEMENT_CM3,
+        le=config.MAX_DISPLACEMENT_CM3,
+    )
     fuel_type: str = Field(..., alias="Fuel_type", min_length=1)
     drive: str = Field(..., alias="Drive", min_length=1)
     transmission: str = Field(..., alias="Transmission", min_length=1)
     body_type: str = Field(..., alias="Type", min_length=1)
-    doors_number: int = Field(..., alias="Doors_number", ge=1, le=6)
+    doors_number: int = Field(
+        ...,
+        alias="Doors_number",
+        ge=config.MIN_DOORS_NUMBER,
+        le=config.MAX_DOORS_NUMBER,
+    )
 
 
 class PredictionResponse(BaseModel):
@@ -46,8 +66,13 @@ class ModelBundle:
     metadata: dict[str, Any]
 
 
-def features_to_frame(features: CarFeatures) -> pd.DataFrame:
+def features_to_frame(
+    features: CarFeatures,
+    vehicle_age_reference_year: int = config.MAX_PRODUCTION_YEAR,
+) -> pd.DataFrame:
     payload = features.model_dump(by_alias=True)
+    production_year = payload.pop(config.PRODUCTION_YEAR_COLUMN)
+    payload[config.VEHICLE_AGE_COLUMN] = vehicle_age_reference_year - production_year
     return pd.DataFrame([payload], columns=config.FEATURE_COLUMNS)
 
 
@@ -73,7 +98,14 @@ def model_available() -> bool:
 
 def predict_price(features: CarFeatures) -> PredictionResponse:
     bundle = load_model_bundle()
-    frame = features_to_frame(features)
+    vehicle_age_reference_year = bundle.metadata.get(
+        "vehicle_age_reference_year",
+        config.MAX_PRODUCTION_YEAR,
+    )
+    frame = features_to_frame(
+        features,
+        vehicle_age_reference_year=int(vehicle_age_reference_year),
+    )
     prediction = bundle.model.predict(frame)
     predicted_price = max(0.0, float(prediction[0]))
 

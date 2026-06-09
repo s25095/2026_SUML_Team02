@@ -116,12 +116,55 @@ def default_model_candidates() -> list[ModelCandidate]:
     ]
 
 
+def normalize_feature_missing_values(features: pd.DataFrame) -> pd.DataFrame:
+    normalized = features.copy()
+
+    for column in config.CATEGORICAL_FEATURE_COLUMNS:
+        values = normalized[column].astype("string")
+        normalized[column] = pd.Series(
+            values.to_numpy(dtype=object, na_value=np.nan),
+            index=normalized.index,
+        )
+
+    return normalized
+
+
+def ensure_vehicle_age_feature(data: pd.DataFrame) -> pd.DataFrame:
+    if config.VEHICLE_AGE_COLUMN in data.columns:
+        return data
+    if config.PRODUCTION_YEAR_COLUMN not in data.columns:
+        return data
+
+    data_with_age = data.copy()
+    reference_year = config.infer_vehicle_age_reference_year(
+        data_with_age[config.PRODUCTION_YEAR_COLUMN],
+        default=config.MAX_PRODUCTION_YEAR,
+    )
+    data_with_age[config.VEHICLE_AGE_COLUMN] = (
+        reference_year - data_with_age[config.PRODUCTION_YEAR_COLUMN]
+    )
+    return data_with_age
+
+
+def vehicle_age_reference_year_for_training(data: pd.DataFrame) -> int:
+    if config.PRODUCTION_YEAR_COLUMN not in data.columns:
+        return config.MAX_PRODUCTION_YEAR
+
+    return config.infer_vehicle_age_reference_year(
+        data[config.PRODUCTION_YEAR_COLUMN],
+        default=config.MAX_PRODUCTION_YEAR,
+    )
+
+
 def split_features_target(data: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series]:
+    data = ensure_vehicle_age_feature(data)
     missing_columns = sorted(set(config.MODEL_COLUMNS) - set(data.columns))
     if missing_columns:
         raise ValueError(f"Missing model columns: {', '.join(missing_columns)}")
 
-    return data[config.FEATURE_COLUMNS].copy(), data[config.TARGET_COLUMN].copy()
+    features = normalize_feature_missing_values(data[config.FEATURE_COLUMNS])
+    target = data[config.TARGET_COLUMN].copy()
+    return features, target
 
 
 def split_train_test(
@@ -210,6 +253,104 @@ def train_final_pipeline(
     return pipeline
 
 
+def transformed_feature_names(pipeline: Pipeline) -> list[str]:
+    preprocessor = pipeline.named_steps["preprocessor"]
+    return [str(feature) for feature in preprocessor.get_feature_names_out()]
+
+
+def source_feature_name(transformed_feature_name: str) -> str:
+    if "__" not in transformed_feature_name:
+        return transformed_feature_name
+
+    transformer_name, feature_name = transformed_feature_name.split("__", maxsplit=1)
+    if transformer_name == "numeric":
+        return feature_name
+
+    if transformer_name == "categorical":
+        for column in config.CATEGORICAL_FEATURE_COLUMNS:
+            if feature_name == column or feature_name.startswith(f"{column}_"):
+                return column
+
+    return feature_name
+
+
+def empty_feature_importance_frame() -> pd.DataFrame:
+    return pd.DataFrame(
+        columns=[
+            "feature",
+            "source_feature",
+            "importance",
+            "importance_share",
+            "importance_type",
+        ]
+    )
+
+
+def model_feature_importance(pipeline: Pipeline) -> pd.DataFrame:
+    model = pipeline.named_steps["model"]
+    importance_type = "feature_importance"
+    values = getattr(model, "feature_importances_", None)
+
+    if values is None:
+        values = getattr(model, "coef_", None)
+        importance_type = "absolute_coefficient"
+
+    if values is None:
+        return empty_feature_importance_frame()
+
+    feature_names = transformed_feature_names(pipeline)
+    importance = np.abs(np.asarray(values, dtype=float).ravel())
+    importance = np.nan_to_num(importance, nan=0.0, posinf=0.0, neginf=0.0)
+    if len(importance) != len(feature_names):
+        raise ValueError(
+            "Model importance length does not match transformed feature count: "
+            f"{len(importance)} != {len(feature_names)}"
+        )
+
+    frame = pd.DataFrame(
+        {
+            "feature": feature_names,
+            "source_feature": [
+                source_feature_name(feature_name) for feature_name in feature_names
+            ],
+            "importance": importance,
+        }
+    )
+    total_importance = float(frame["importance"].sum())
+    frame["importance_share"] = (
+        frame["importance"] / total_importance if total_importance > 0 else 0.0
+    )
+    frame["importance_type"] = importance_type
+
+    return frame.sort_values("importance", ascending=False).reset_index(drop=True)
+
+
+def aggregate_feature_importance(pipeline: Pipeline) -> pd.DataFrame:
+    importance = model_feature_importance(pipeline)
+    if importance.empty:
+        return pd.DataFrame(
+            columns=[
+                "source_feature",
+                "importance",
+                "importance_share",
+                "importance_type",
+            ]
+        )
+
+    grouped = (
+        importance.groupby("source_feature", as_index=False)["importance"]
+        .sum()
+        .sort_values("importance", ascending=False)
+        .reset_index(drop=True)
+    )
+    total_importance = float(grouped["importance"].sum())
+    grouped["importance_share"] = (
+        grouped["importance"] / total_importance if total_importance > 0 else 0.0
+    )
+    grouped["importance_type"] = importance["importance_type"].iloc[0]
+    return grouped
+
+
 def to_jsonable(value: Any) -> Any:
     if isinstance(value, np.generic):
         value = value.item()
@@ -242,6 +383,7 @@ def save_model_artifacts(
     results: list[ModelResult],
     selected_model_name: str,
     rows_count: int,
+    vehicle_age_reference_year: int,
     model_path: Path = config.MODEL_PATH,
     metadata_path: Path = config.MODEL_METADATA_PATH,
     metrics_path: Path = config.TRAINING_METRICS_PATH,
@@ -255,6 +397,7 @@ def save_model_artifacts(
     metadata = {
         "trained_at_utc": trained_at,
         "selected_model": selected_model_name,
+        "vehicle_age_reference_year": vehicle_age_reference_year,
         "selection_rule": (
             "Prefer lightgbm when it beats dummy_median and is within 5% "
             "of the best holdout RMSE; otherwise use the best RMSE model."
@@ -297,6 +440,7 @@ def train_and_save_model(
         results,
         selected_model_name,
         rows_count=len(data),
+        vehicle_age_reference_year=vehicle_age_reference_year_for_training(data),
         model_path=model_path,
         metadata_path=metadata_path,
         metrics_path=metrics_path,
