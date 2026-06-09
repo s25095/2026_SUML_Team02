@@ -15,7 +15,7 @@ from pydantic import ValidationError
 
 from car_price_prediction import config
 from car_price_prediction.app.api import router as api_router
-from car_price_prediction.app.forms import FORM_FIELDS
+from car_price_prediction.app.forms import form_fields
 from car_price_prediction.model import predict as prediction_service
 from car_price_prediction.schemas import CarFeatures, HealthResponse, PredictionResponse
 
@@ -28,6 +28,7 @@ STATIC_DIR = APP_DIR / "static"
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     prediction_service.warm_model_bundle()
+    form_fields()
     yield
 
 
@@ -38,7 +39,7 @@ app.include_router(api_router)
 
 
 def empty_form_values() -> dict[str, Any]:
-    return {field["name"]: "" for field in FORM_FIELDS}
+    return {field["name"]: field.get("default", "") for field in form_fields()}
 
 
 def template_context(
@@ -49,7 +50,7 @@ def template_context(
 ) -> dict[str, Any]:
     return {
         "request": request,
-        "fields": FORM_FIELDS,
+        "fields": form_fields(),
         "values": values or empty_form_values(),
         "prediction": prediction,
         "errors": errors or [],

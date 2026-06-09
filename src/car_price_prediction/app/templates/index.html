@@ -26,15 +26,29 @@
           {% for field in fields %}
             <label class="field">
               <span>{{ field.label }}</span>
-              <input
-                name="{{ field.name }}"
-                type="{{ field.type }}"
-                placeholder="{{ field.placeholder }}"
-                value="{{ values.get(field.name, '') }}"
-                {% if field.min is defined %}min="{{ field.min }}"{% endif %}
-                {% if field.max is defined %}max="{{ field.max }}"{% endif %}
-                required
-              >
+              {% set field_value = values.get(field.name, field.default) %}
+              {% if field.options is defined %}
+                <select name="{{ field.name }}" required>
+                  {% for option in field.options %}
+                    <option
+                      value="{{ option.value }}"
+                      {% if field_value|string == option.value|string %}selected{% endif %}
+                    >
+                      {{ option.label }}
+                    </option>
+                  {% endfor %}
+                </select>
+              {% else %}
+                <input
+                  name="{{ field.name }}"
+                  type="{{ field.type }}"
+                  placeholder="{{ field.placeholder }}"
+                  value="{{ field_value }}"
+                  {% if field.min is defined %}min="{{ field.min }}"{% endif %}
+                  {% if field.max is defined %}max="{{ field.max }}"{% endif %}
+                  required
+                >
+              {% endif %}
             </label>
           {% endfor %}
 

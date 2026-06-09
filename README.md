@@ -39,7 +39,9 @@ uv run build-model
 ```
 
 Ta komenda pobiera dataset z Kaggle, przygotowuje `data/processed/car_prices_clean.csv`
-i trenuje model zapisujac artefakty do `models/`. Jesli surowy CSV juz istnieje,
+i trenuje model zapisujac artefakty do `models/`. Oprocz modelu i metadanych
+powstaje tez `models/feature_options.json`, czyli lista wartosci do dropdownow
+formularza wygenerowana z danych treningowych. Jesli surowy CSV juz istnieje,
 pobieranie zostanie pominiete. Aby wymusic ponowne pobranie danych:
 
 ```bash
@@ -85,6 +87,9 @@ uv run serve
 ```
 
 Strona HTML jest dostepna pod `http://127.0.0.1:8000/`.
+Aplikacja wymaga artefaktow z `models/`, wiec przed pierwszym uruchomieniem
+odpal `uv run build-model` albo przynajmniej `uv run train-model` na gotowym
+processed CSV.
 
 ## API
 

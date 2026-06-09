@@ -33,6 +33,7 @@ class AppSettings(BaseSettings):
     model_filename: str = "car_price_model.joblib"
     model_metadata_filename: str = "model_metadata.json"
     training_metrics_filename: str = "training_metrics.json"
+    feature_options_filename: str = "feature_options.json"
 
     random_state: int = 42
     test_size: float = Field(default=0.2, gt=0, lt=1)
@@ -74,6 +75,7 @@ PROCESSED_DATA_PATH = PROCESSED_DATA_DIR / PROCESSED_DATA_FILENAME
 MODEL_PATH = MODELS_DIR / settings.model_filename
 MODEL_METADATA_PATH = MODELS_DIR / settings.model_metadata_filename
 TRAINING_METRICS_PATH = MODELS_DIR / settings.training_metrics_filename
+FEATURE_OPTIONS_PATH = MODELS_DIR / settings.feature_options_filename
 
 TARGET_COLUMN = "Price"
 CURRENCY_COLUMN = "Currency"

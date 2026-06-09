@@ -73,7 +73,8 @@ h1 {
   font-weight: 650;
 }
 
-.field input {
+.field input,
+.field select {
   width: 100%;
   min-height: 44px;
   border: 1px solid var(--line);
@@ -85,7 +86,19 @@ h1 {
   outline: none;
 }
 
-.field input:focus {
+.field select {
+  appearance: none;
+  background:
+    linear-gradient(45deg, transparent 50%, var(--muted) 50%) calc(100% - 17px)
+      50% / 6px 6px no-repeat,
+    linear-gradient(135deg, var(--muted) 50%, transparent 50%) calc(100% - 12px)
+      50% / 6px 6px no-repeat,
+    var(--surface);
+  padding-right: 34px;
+}
+
+.field input:focus,
+.field select:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.14);
 }

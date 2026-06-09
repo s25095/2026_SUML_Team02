@@ -42,6 +42,7 @@ def run_pipeline(force_download: bool = False) -> PipelineResult:
     print(f"Saved model: {config.MODEL_PATH}")
     print(f"Saved metadata: {config.MODEL_METADATA_PATH}")
     print(f"Saved metrics: {config.TRAINING_METRICS_PATH}")
+    print(f"Saved feature options: {config.FEATURE_OPTIONS_PATH}")
 
     return PipelineResult(
         raw_data_path=config.RAW_DATA_PATH,

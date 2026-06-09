@@ -90,6 +90,7 @@ def test_train_and_save_model_creates_artifacts(tmp_path):
         model_path=tmp_path / "model.joblib",
         metadata_path=tmp_path / "metadata.json",
         metrics_path=tmp_path / "metrics.json",
+        feature_options_path=tmp_path / "feature_options.json",
     )
 
     assert selected in {"dummy_median", "ridge"}
@@ -97,13 +98,17 @@ def test_train_and_save_model_creates_artifacts(tmp_path):
 
     metadata = json.loads((tmp_path / "metadata.json").read_text())
     metrics = json.loads((tmp_path / "metrics.json").read_text())
+    feature_options = json.loads((tmp_path / "feature_options.json").read_text())
 
     assert metadata["selected_model"] == selected
     assert metadata["feature_columns"]
     assert "Vehicle_age_years" in metadata["feature_columns"]
     assert "Production_year" not in metadata["feature_columns"]
     assert metadata["vehicle_age_reference_year"] == 2019
+    assert metadata["feature_options_path"] == str(tmp_path / "feature_options.json")
     assert len(metrics["models"]) == 2
+    assert feature_options["fields"]["Vehicle_brand"]
+    assert feature_options["fields"]["Doors_number"] == ["5"]
 
 
 def test_feature_importance_maps_transformed_features_to_source_columns():

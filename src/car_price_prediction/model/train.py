@@ -22,6 +22,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 from car_price_prediction import config
+from car_price_prediction.feature_options import save_feature_options
 
 
 @dataclass(frozen=True)
@@ -387,6 +388,7 @@ def save_model_artifacts(
     model_path: Path = config.MODEL_PATH,
     metadata_path: Path = config.MODEL_METADATA_PATH,
     metrics_path: Path = config.TRAINING_METRICS_PATH,
+    feature_options_path: Path = config.FEATURE_OPTIONS_PATH,
 ) -> None:
     model_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -411,6 +413,7 @@ def save_model_artifacts(
         "random_state": config.RANDOM_STATE,
         "model_path": display_path(model_path),
         "metrics_path": display_path(metrics_path),
+        "feature_options_path": display_path(feature_options_path),
     }
 
     with metadata_path.open("w", encoding="utf-8") as metadata_file:
@@ -426,6 +429,7 @@ def train_and_save_model(
     model_path: Path = config.MODEL_PATH,
     metadata_path: Path = config.MODEL_METADATA_PATH,
     metrics_path: Path = config.TRAINING_METRICS_PATH,
+    feature_options_path: Path = config.FEATURE_OPTIONS_PATH,
 ) -> str:
     candidates = candidates or default_model_candidates()
     results = evaluate_candidates(data, candidates=candidates)
@@ -444,7 +448,9 @@ def train_and_save_model(
         model_path=model_path,
         metadata_path=metadata_path,
         metrics_path=metrics_path,
+        feature_options_path=feature_options_path,
     )
+    save_feature_options(data, feature_options_path)
     return selected_model_name
 
 
@@ -456,6 +462,7 @@ def main() -> None:
     print(f"Saved model: {config.MODEL_PATH}")
     print(f"Saved metadata: {config.MODEL_METADATA_PATH}")
     print(f"Saved metrics: {config.TRAINING_METRICS_PATH}")
+    print(f"Saved feature options: {config.FEATURE_OPTIONS_PATH}")
 
 
 if __name__ == "__main__":

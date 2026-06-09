@@ -10,6 +10,36 @@ from car_price_prediction.schemas import PredictionResponse
 client = TestClient(main.app)
 
 
+def stub_form_fields():
+    return [
+        {
+            "name": "Condition",
+            "label": "Stan",
+            "default": "Used",
+            "options": [
+                {"value": "Used", "label": "Uzywany"},
+                {"value": "New", "label": "Nowy"},
+            ],
+        },
+        {
+            "name": "Vehicle_brand",
+            "label": "Marka",
+            "default": "Toyota",
+            "options": [
+                {"value": "Toyota", "label": "Toyota"},
+                {"value": "Honda", "label": "Honda"},
+            ],
+        },
+        {
+            "name": "Production_year",
+            "label": "Rok produkcji",
+            "type": "number",
+            "placeholder": "2018",
+            "default": 2018,
+        },
+    ]
+
+
 def api_payload():
     return {
         "Condition": "Used",
@@ -34,13 +64,20 @@ def test_health_endpoint():
     assert "model_available" in response.json()
 
 
-def test_index_renders_form():
+def test_index_renders_form(monkeypatch):
+    monkeypatch.setattr(main, "form_fields", stub_form_fields)
+
     response = client.get("/")
 
     assert response.status_code == 200
     assert "Wycena auta" in response.text
     assert 'name="Vehicle_brand"' in response.text
     assert 'action="/form/predict"' in response.text
+    assert '<select name="Condition"' in response.text
+    assert '<select name="Vehicle_brand"' in response.text
+    assert 'value="Toyota"' in response.text
+    assert "selected" in response.text
+    assert 'value="2018"' in response.text
 
 
 def test_startup_warms_model_cache_when_model_exists(monkeypatch):
@@ -55,6 +92,7 @@ def test_startup_warms_model_cache_when_model_exists(monkeypatch):
         "warm_model_bundle",
         fake_warm_model_bundle,
     )
+    monkeypatch.setattr(main, "form_fields", stub_form_fields)
 
     with TestClient(main.app):
         pass
@@ -106,6 +144,8 @@ def test_api_predict_returns_503_when_model_is_missing(monkeypatch):
 
 
 def test_form_predict_uses_prediction_service(monkeypatch):
+    monkeypatch.setattr(main, "form_fields", stub_form_fields)
+
     def fake_predict_price(features):
         return PredictionResponse(
             predicted_price_pln=52000.0,
