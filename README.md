@@ -32,13 +32,29 @@ Konfiguracja aplikacji jest ladowana przez Pydantic Settings z `.env` oraz zmien
 
 ## Workflow
 
+Pelny pipeline przygotowania modelu:
+
+```bash
+uv run build-model
+```
+
+Ta komenda pobiera dataset z Kaggle, przygotowuje `data/processed/car_prices_clean.csv`
+i trenuje model zapisujac artefakty do `models/`. Jesli surowy CSV juz istnieje,
+pobieranie zostanie pominiete. Aby wymusic ponowne pobranie danych:
+
+```bash
+uv run build-model --force-download
+```
+
+Kaggle API uzyje `KAGGLE_API_TOKEN` z `.env`.
+
+Etapowe komendy przydatne podczas EDA/debugowania:
+
 1. Pobierz dataset z Kaggle:
 
 ```bash
 uv run download-data
 ```
-
-Kaggle API uzyje `KAGGLE_API_TOKEN` z `.env`.
 
 2. Przygotuj dane:
 
@@ -52,7 +68,7 @@ uv run preprocess-data
 uv run jupyter lab notebooks/car_price_eda_model_selection.ipynb
 ```
 
-Notebook dokumentuje rozklad targetu, braki danych, outliery, wybrane cechy i porownanie modeli. Produkcyjny trening nie odbywa sie w notebooku, tylko w powtarzalnym skrypcie.
+Notebook dokumentuje rozklad targetu, braki danych, outliery, wybrane cechy i porownanie modeli. Potrafi tez zapisac model tym samym writerem co CLI, ale powtarzalny trening produkcyjny najlepiej uruchamiac przez `uv run build-model` albo etapowo przez `uv run train-model`.
 
 4. Wytrenuj model produkcyjny:
 
