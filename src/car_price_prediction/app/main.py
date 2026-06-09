@@ -1,28 +1,40 @@
 from __future__ import annotations
 
+import asyncio
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
 import uvicorn
-from fastapi import FastAPI, Form, HTTPException, Request, status
+from fastapi import FastAPI, Form, Request, status
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
 
 from car_price_prediction import config
+from car_price_prediction.app.api import router as api_router
 from car_price_prediction.app.forms import FORM_FIELDS
 from car_price_prediction.model import predict as prediction_service
-from car_price_prediction.model.predict import CarFeatures, PredictionResponse
+from car_price_prediction.schemas import CarFeatures, HealthResponse, PredictionResponse
 
 
 APP_DIR = Path(__file__).resolve().parent
 TEMPLATES_DIR = APP_DIR / "templates"
 STATIC_DIR = APP_DIR / "static"
 
-app = FastAPI(title="Car Price Prediction", version="0.1.0")
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    prediction_service.warm_model_bundle()
+    yield
+
+
+app = FastAPI(title="Car Price Prediction", version="0.1.0", lifespan=lifespan)
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+app.include_router(api_router)
 
 
 def empty_form_values() -> dict[str, Any]:
@@ -91,7 +103,7 @@ async def index(request: Request) -> HTMLResponse:
     )
 
 
-@app.post("/predict", response_class=HTMLResponse)
+@app.post("/form/predict", response_class=HTMLResponse)
 async def predict_form(
     request: Request,
     condition: str = Form(..., alias="Condition"),
@@ -134,7 +146,7 @@ async def predict_form(
             body_type,
             doors_number,
         )
-        prediction = prediction_service.predict_price(features)
+        prediction = await asyncio.to_thread(prediction_service.predict_price, features)
     except ValidationError as error:
         return templates.TemplateResponse(
             name="index.html",
@@ -161,24 +173,13 @@ async def predict_form(
     )
 
 
-@app.post("/api/predict", response_model=PredictionResponse)
-async def predict_api(features: CarFeatures) -> PredictionResponse:
-    try:
-        return prediction_service.predict_price(features)
-    except FileNotFoundError as error:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=str(error),
-        ) from error
-
-
-@app.get("/health")
-async def health() -> dict[str, Any]:
-    return {
-        "status": "ok",
-        "model_available": prediction_service.model_available(),
-        "model_path": str(config.MODEL_PATH.relative_to(config.REPO_ROOT)),
-    }
+@app.get("/health", response_model=HealthResponse)
+async def health() -> HealthResponse:
+    return HealthResponse(
+        status="ok",
+        model_available=prediction_service.model_available(),
+        model_path=str(config.MODEL_PATH.relative_to(config.REPO_ROOT)),
+    )
 
 
 def serve() -> None:

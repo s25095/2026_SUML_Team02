@@ -7,57 +7,9 @@ from typing import Any
 
 import joblib
 import pandas as pd
-from pydantic import BaseModel, ConfigDict, Field
 
 from car_price_prediction import config
-
-
-class CarFeatures(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, extra="forbid")
-
-    condition: str = Field(..., alias="Condition", min_length=1)
-    vehicle_brand: str = Field(..., alias="Vehicle_brand", min_length=1)
-    production_year: int = Field(
-        ...,
-        alias="Production_year",
-        ge=config.MIN_PRODUCTION_YEAR,
-        le=config.MAX_PRODUCTION_YEAR,
-    )
-    mileage_km: int = Field(
-        ...,
-        alias="Mileage_km",
-        ge=config.MIN_MILEAGE_KM,
-        le=config.MAX_MILEAGE_KM,
-    )
-    power_hp: int = Field(
-        ...,
-        alias="Power_HP",
-        ge=config.MIN_POWER_HP,
-        le=config.MAX_POWER_HP,
-    )
-    displacement_cm3: int = Field(
-        ...,
-        alias="Displacement_cm3",
-        ge=config.MIN_DISPLACEMENT_CM3,
-        le=config.MAX_DISPLACEMENT_CM3,
-    )
-    fuel_type: str = Field(..., alias="Fuel_type", min_length=1)
-    drive: str = Field(..., alias="Drive", min_length=1)
-    transmission: str = Field(..., alias="Transmission", min_length=1)
-    body_type: str = Field(..., alias="Type", min_length=1)
-    doors_number: int = Field(
-        ...,
-        alias="Doors_number",
-        ge=config.MIN_DOORS_NUMBER,
-        le=config.MAX_DOORS_NUMBER,
-    )
-
-
-class PredictionResponse(BaseModel):
-    predicted_price_pln: float
-    model_name: str
-    model_version: str
-    features: dict[str, Any]
+from car_price_prediction.schemas import CarFeatures, PredictionResponse
 
 
 @dataclass(frozen=True)
@@ -96,6 +48,14 @@ def model_available() -> bool:
     return config.MODEL_PATH.exists()
 
 
+def warm_model_bundle() -> bool:
+    if not model_available():
+        return False
+
+    load_model_bundle()
+    return True
+
+
 def predict_price(features: CarFeatures) -> PredictionResponse:
     bundle = load_model_bundle()
     vehicle_age_reference_year = bundle.metadata.get(
@@ -113,5 +73,6 @@ def predict_price(features: CarFeatures) -> PredictionResponse:
         predicted_price_pln=round(predicted_price, 2),
         model_name=bundle.metadata.get("selected_model", "unknown"),
         model_version=bundle.metadata.get("trained_at_utc", "unknown"),
-        features=features.model_dump(by_alias=True),
+        vehicle_age_reference_year=int(vehicle_age_reference_year),
+        features=features,
     )

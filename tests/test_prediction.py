@@ -4,7 +4,8 @@ import pytest
 from pydantic import ValidationError
 
 from car_price_prediction import config
-from car_price_prediction.model.predict import CarFeatures, features_to_frame
+from car_price_prediction.model.predict import features_to_frame
+from car_price_prediction.schemas import CarFeatures
 
 
 def valid_features() -> CarFeatures:

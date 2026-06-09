@@ -88,6 +88,9 @@ Strona HTML jest dostepna pod `http://127.0.0.1:8000/`.
 
 ## API
 
+FastAPI wystawia interaktywny opis kontraktu pod `http://127.0.0.1:8000/docs`.
+Request i response predykcji sa opisane modelami Pydantic.
+
 Health check:
 
 ```bash
@@ -113,6 +116,10 @@ curl -X POST http://127.0.0.1:8000/api/predict \
     "Doors_number": 5
   }'
 ```
+
+Response zawiera predykcje w PLN, nazwe/model version z metadanych treningu,
+rok referencyjny uzyty do przeliczenia wieku auta oraz zwalidowane cechy
+wejsciowe.
 
 ## Testy
 
