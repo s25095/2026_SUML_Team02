@@ -23,6 +23,10 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 from car_price_prediction import config
 from car_price_prediction.feature_options import save_feature_options
+from car_price_prediction.model.feature_names import (
+    source_feature_name,
+    transformed_feature_names,
+)
 
 
 @dataclass(frozen=True)
@@ -252,27 +256,6 @@ def train_final_pipeline(
     pipeline = build_pipeline(clone(candidate_by_name[selected_model_name].estimator))
     pipeline.fit(features, target)
     return pipeline
-
-
-def transformed_feature_names(pipeline: Pipeline) -> list[str]:
-    preprocessor = pipeline.named_steps["preprocessor"]
-    return [str(feature) for feature in preprocessor.get_feature_names_out()]
-
-
-def source_feature_name(transformed_feature_name: str) -> str:
-    if "__" not in transformed_feature_name:
-        return transformed_feature_name
-
-    transformer_name, feature_name = transformed_feature_name.split("__", maxsplit=1)
-    if transformer_name == "numeric":
-        return feature_name
-
-    if transformer_name == "categorical":
-        for column in config.CATEGORICAL_FEATURE_COLUMNS:
-            if feature_name == column or feature_name.startswith(f"{column}_"):
-                return column
-
-    return feature_name
 
 
 def empty_feature_importance_frame() -> pd.DataFrame:

@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 
 from car_price_prediction.app import api
 from car_price_prediction.app import main
-from car_price_prediction.schemas import PredictionResponse
+from car_price_prediction.schemas import PredictionExplanationItem, PredictionResponse
 
 
 client = TestClient(main.app)
@@ -107,6 +107,17 @@ def test_api_predict_uses_prediction_service(monkeypatch):
             model_name="test_model",
             model_version="test-version",
             vehicle_age_reference_year=2021,
+            base_value_pln=50000.0,
+            explanation_method="lightgbm_pred_contrib",
+            explanations=[
+                PredictionExplanationItem(
+                    feature_name="Vehicle_brand",
+                    display_name="Marka",
+                    feature_value="Toyota",
+                    contribution_pln=2000.0,
+                    direction="increases",
+                )
+            ],
             features=features,
         )
 
@@ -119,6 +130,8 @@ def test_api_predict_uses_prediction_service(monkeypatch):
     assert response.json()["currency"] == "PLN"
     assert response.json()["model_name"] == "test_model"
     assert response.json()["vehicle_age_reference_year"] == 2021
+    assert response.json()["explanation_method"] == "lightgbm_pred_contrib"
+    assert response.json()["explanations"][0]["feature_name"] == "Vehicle_brand"
     assert response.json()["features"]["Production_year"] == 2018
 
 
@@ -152,6 +165,17 @@ def test_form_predict_uses_prediction_service(monkeypatch):
             model_name="test_model",
             model_version="test-version",
             vehicle_age_reference_year=2021,
+            base_value_pln=50000.0,
+            explanation_method="lightgbm_pred_contrib",
+            explanations=[
+                PredictionExplanationItem(
+                    feature_name="Vehicle_brand",
+                    display_name="Marka",
+                    feature_value="Toyota",
+                    contribution_pln=2000.0,
+                    direction="increases",
+                )
+            ],
             features=features,
         )
 
@@ -161,3 +185,6 @@ def test_form_predict_uses_prediction_service(monkeypatch):
 
     assert response.status_code == 200
     assert "52 000 PLN" in response.text
+    assert "Wplyw parametrow" in response.text
+    assert "Marka" in response.text
+    assert "+2 000 PLN" in response.text

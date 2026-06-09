@@ -102,6 +102,43 @@ class CarFeatures(BaseModel):
     )
 
 
+class PredictionExplanationItem(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "feature_name": "Mileage_km",
+                "display_name": "Przebieg",
+                "feature_value": "120 000 km",
+                "contribution_pln": -8200.0,
+                "direction": "decreases",
+            }
+        }
+    )
+
+    feature_name: str = Field(
+        ...,
+        description="Model input feature represented by this local contribution.",
+    )
+    display_name: str = Field(
+        ...,
+        description="Human-readable feature name for UI display.",
+    )
+    feature_value: str = Field(
+        ...,
+        description="Feature value used for this prediction, formatted for display.",
+    )
+    contribution_pln: float = Field(
+        ...,
+        description=(
+            "Local LightGBM SHAP contribution in PLN relative to the model base value."
+        ),
+    )
+    direction: Literal["increases", "decreases", "neutral"] = Field(
+        ...,
+        description="Whether this feature contribution raises or lowers the prediction.",
+    )
+
+
 class PredictionResponse(BaseModel):
     model_config = ConfigDict(
         json_schema_extra={
@@ -111,6 +148,17 @@ class PredictionResponse(BaseModel):
                 "model_name": "LightGBM",
                 "model_version": "2026-06-09T10:00:00Z",
                 "vehicle_age_reference_year": 2021,
+                "base_value_pln": 63000.0,
+                "explanation_method": "lightgbm_pred_contrib",
+                "explanations": [
+                    {
+                        "feature_name": "Mileage_km",
+                        "display_name": "Przebieg",
+                        "feature_value": "120 000 km",
+                        "contribution_pln": -8200.0,
+                        "direction": "decreases",
+                    }
+                ],
                 "features": EXAMPLE_FEATURES,
             }
         }
@@ -136,6 +184,21 @@ class PredictionResponse(BaseModel):
             "Reference year used to transform Production_year into "
             "Vehicle_age_years."
         ),
+    )
+    base_value_pln: float | None = Field(
+        default=None,
+        description=(
+            "LightGBM expected/base prediction value in PLN before local "
+            "feature contributions are added."
+        ),
+    )
+    explanation_method: Literal["lightgbm_pred_contrib"] | None = Field(
+        default=None,
+        description="Method used to calculate local feature contributions.",
+    )
+    explanations: list[PredictionExplanationItem] = Field(
+        default_factory=list,
+        description="Local feature contributions for this specific prediction.",
     )
     features: CarFeatures = Field(
         ...,

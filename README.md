@@ -124,7 +124,9 @@ curl -X POST http://127.0.0.1:8000/api/predict \
 
 Response zawiera predykcje w PLN, nazwe/model version z metadanych treningu,
 rok referencyjny uzyty do przeliczenia wieku auta oraz zwalidowane cechy
-wejsciowe.
+wejsciowe. Jesli finalnym modelem jest LightGBM, odpowiedz zawiera tez lokalne
+wyjasnienia `lightgbm_pred_contrib`: bazowa wartosc modelu i wplyw kazdej cechy
+na konkretna predykcje w PLN.
 
 ## Testy
 

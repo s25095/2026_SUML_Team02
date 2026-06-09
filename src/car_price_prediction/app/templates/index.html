@@ -56,10 +56,43 @@
         </form>
 
         {% if prediction %}
-          <section class="result" aria-live="polite">
-            <span>Szacowana cena</span>
-            <strong>{{ "{:,.0f}".format(prediction.predicted_price_pln).replace(",", " ") }} PLN</strong>
-            <small>Model: {{ prediction.model_name }}</small>
+          <section class="result-panel" aria-live="polite">
+            <div class="result">
+              <span>Szacowana cena</span>
+              <strong>{{ "{:,.0f}".format(prediction.predicted_price_pln).replace(",", " ") }} PLN</strong>
+              <small>Model: {{ prediction.model_name }}</small>
+            </div>
+
+            {% if prediction.explanations %}
+              <section class="explanations" aria-label="Wplyw parametrow">
+                <header class="explanations-header">
+                  <div>
+                    <span>Wplyw parametrow</span>
+                    <h2>Co podnioslo lub obnizylo wycene</h2>
+                  </div>
+                  {% if prediction.base_value_pln is not none %}
+                    <p>
+                      Baza modelu:
+                      <strong>{{ "{:,.0f}".format(prediction.base_value_pln).replace(",", " ") }} PLN</strong>
+                    </p>
+                  {% endif %}
+                </header>
+
+                <ul class="impact-list">
+                  {% for item in prediction.explanations %}
+                    <li class="impact-item">
+                      <div>
+                        <span class="impact-name">{{ item.display_name }}</span>
+                        <small>{{ item.feature_value }}</small>
+                      </div>
+                      <strong class="impact-value {{ item.direction }}">
+                        {{ "{:+,.0f}".format(item.contribution_pln).replace(",", " ") }} PLN
+                      </strong>
+                    </li>
+                  {% endfor %}
+                </ul>
+              </section>
+            {% endif %}
           </section>
         {% endif %}
 

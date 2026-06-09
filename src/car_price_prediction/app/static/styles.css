@@ -7,6 +7,11 @@
   --line: #d8e0de;
   --accent: #0f766e;
   --accent-dark: #115e59;
+  --positive: #0f766e;
+  --positive-bg: #e7f6f3;
+  --negative: #b42318;
+  --negative-bg: #fff1f0;
+  --neutral-bg: #eef2f1;
   --danger-bg: #fff1f0;
   --danger-text: #9f1d1d;
 }
@@ -134,17 +139,22 @@ button:hover {
   margin: 0;
 }
 
-.result {
-  display: grid;
-  gap: 4px;
+.result-panel {
   margin-top: 24px;
   border-top: 1px solid var(--line);
   padding-top: 20px;
 }
 
+.result {
+  display: grid;
+  gap: 4px;
+}
+
 .result span,
 .result small,
-.status-note {
+.status-note,
+.explanations-header span,
+.impact-item small {
   color: var(--muted);
 }
 
@@ -152,6 +162,101 @@ button:hover {
   font-size: clamp(2rem, 5vw, 3.6rem);
   line-height: 1;
   letter-spacing: 0;
+}
+
+.explanations {
+  margin-top: 22px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.explanations-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  background: #f8faf9;
+  border-bottom: 1px solid var(--line);
+}
+
+.explanations-header h2,
+.explanations-header p {
+  margin: 0;
+}
+
+.explanations-header span {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.78rem;
+  font-weight: 750;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.explanations-header h2 {
+  font-size: 1.05rem;
+  line-height: 1.25;
+}
+
+.explanations-header p {
+  color: var(--muted);
+  font-size: 0.92rem;
+  text-align: right;
+}
+
+.explanations-header p strong {
+  display: block;
+  margin-top: 2px;
+  color: var(--text);
+}
+
+.impact-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.impact-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 13px 16px;
+}
+
+.impact-item + .impact-item {
+  border-top: 1px solid var(--line);
+}
+
+.impact-name {
+  display: block;
+  margin-bottom: 3px;
+  font-weight: 750;
+}
+
+.impact-value {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 7px 10px;
+  font-size: 0.94rem;
+}
+
+.impact-value.increases {
+  background: var(--positive-bg);
+  color: var(--positive);
+}
+
+.impact-value.decreases {
+  background: var(--negative-bg);
+  color: var(--negative);
+}
+
+.impact-value.neutral {
+  background: var(--neutral-bg);
+  color: var(--muted);
 }
 
 .status-note {
@@ -171,5 +276,19 @@ button:hover {
 
   .form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .explanations-header,
+  .impact-item {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .explanations-header p {
+    text-align: left;
+  }
+
+  .impact-value {
+    width: fit-content;
   }
 }
