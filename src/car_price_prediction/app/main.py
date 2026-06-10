@@ -7,7 +7,7 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
 
 import uvicorn
 from fastapi import FastAPI, Form, Request, status
@@ -82,36 +82,6 @@ def validation_errors_to_text(error: ValidationError) -> list[str]:
     return messages
 
 
-def build_features_from_form(
-    condition: str,
-    vehicle_brand: str,
-    production_year: int,
-    mileage_km: int,
-    power_hp: int,
-    displacement_cm3: int,
-    fuel_type: str,
-    drive: str,
-    transmission: str,
-    body_type: str,
-    doors_number: int,
-) -> CarFeatures:
-    """Convert HTML form fields into the shared prediction schema."""
-
-    return CarFeatures(
-        Condition=condition,
-        Vehicle_brand=vehicle_brand,
-        Production_year=production_year,
-        Mileage_km=mileage_km,
-        Power_HP=power_hp,
-        Displacement_cm3=displacement_cm3,
-        Fuel_type=fuel_type,
-        Drive=drive,
-        Transmission=transmission,
-        Type=body_type,
-        Doors_number=doors_number,
-    )
-
-
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request) -> HTMLResponse:
     """Render the prediction form."""
@@ -126,53 +96,18 @@ async def index(request: Request) -> HTMLResponse:
 @app.post("/form/predict", response_class=HTMLResponse)
 async def predict_form(
     request: Request,
-    condition: str = Form(..., alias="Condition"),
-    vehicle_brand: str = Form(..., alias="Vehicle_brand"),
-    production_year: int = Form(..., alias="Production_year"),
-    mileage_km: int = Form(..., alias="Mileage_km"),
-    power_hp: int = Form(..., alias="Power_HP"),
-    displacement_cm3: int = Form(..., alias="Displacement_cm3"),
-    fuel_type: str = Form(..., alias="Fuel_type"),
-    drive: str = Form(..., alias="Drive"),
-    transmission: str = Form(..., alias="Transmission"),
-    body_type: str = Form(..., alias="Type"),
-    doors_number: int = Form(..., alias="Doors_number"),
+    features: Annotated[CarFeatures, Form()],
 ) -> HTMLResponse:
     """Handle HTML form submission and render the prediction result."""
 
-    form_values = {
-        "Condition": condition,
-        "Vehicle_brand": vehicle_brand,
-        "Production_year": production_year,
-        "Mileage_km": mileage_km,
-        "Power_HP": power_hp,
-        "Displacement_cm3": displacement_cm3,
-        "Fuel_type": fuel_type,
-        "Drive": drive,
-        "Transmission": transmission,
-        "Type": body_type,
-        "Doors_number": doors_number,
-    }
+    form_values = features.model_dump(by_alias=True)
 
     try:
-        features = build_features_from_form(
-            condition,
-            vehicle_brand,
-            production_year,
-            mileage_km,
-            power_hp,
-            displacement_cm3,
-            fuel_type,
-            drive,
-            transmission,
-            body_type,
-            doors_number,
-        )
         prediction = await asyncio.to_thread(prediction_service.predict_price, features)
         logger.info(
             "Rendered form prediction for %s %s: %.2f PLN",
-            vehicle_brand,
-            production_year,
+            features.vehicle_brand,
+            features.production_year,
             prediction.predicted_price_pln,
         )
     except ValidationError as error:

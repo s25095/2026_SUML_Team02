@@ -1,4 +1,8 @@
+"""Tests for the end-to-end pipeline coordinator."""
+
 from __future__ import annotations
+
+# pylint: disable=missing-function-docstring
 
 import pandas as pd
 

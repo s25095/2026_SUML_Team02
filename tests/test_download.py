@@ -1,4 +1,9 @@
+"""Tests for Kaggle dataset download orchestration."""
+
 from __future__ import annotations
+
+# pylint: disable=missing-class-docstring,missing-function-docstring
+# pylint: disable=too-few-public-methods,too-many-arguments,too-many-positional-arguments
 
 from car_price_prediction.data import download
 from car_price_prediction.config import AppSettings

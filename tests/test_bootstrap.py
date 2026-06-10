@@ -1,4 +1,8 @@
+"""Tests for application artifact bootstrap decisions."""
+
 from __future__ import annotations
+
+# pylint: disable=missing-function-docstring
 
 from pathlib import Path
 from types import SimpleNamespace
@@ -40,7 +44,7 @@ def test_bootstrap_artifacts_ready_when_processed_data_and_model_exist(
     result = bootstrap.bootstrap_artifacts()
 
     assert result.action == "ready"
-    assert result.missing_artifacts == ()
+    assert not result.missing_artifacts
 
 
 def test_bootstrap_artifacts_runs_full_pipeline_when_processed_data_is_missing(

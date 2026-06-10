@@ -13,15 +13,7 @@ import pandas as pd
 from car_price_prediction import config
 
 
-SELECT_FEATURE_COLUMNS = [
-    "Condition",
-    "Vehicle_brand",
-    "Fuel_type",
-    "Drive",
-    "Transmission",
-    "Type",
-    "Doors_number",
-]
+SELECT_FEATURE_COLUMNS = [*config.CATEGORICAL_FEATURE_COLUMNS, "Doors_number"]
 
 DISPLAY_ORDER: dict[str, list[str]] = {
     "Condition": ["Used", "New"],

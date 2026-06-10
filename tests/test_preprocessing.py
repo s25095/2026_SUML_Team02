@@ -1,4 +1,8 @@
+"""Tests for dataset preprocessing and feature engineering."""
+
 from __future__ import annotations
+
+# pylint: disable=missing-function-docstring
 
 import pandas as pd
 import pytest

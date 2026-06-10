@@ -1,4 +1,8 @@
+"""Tests for HTML form option loading and validation helpers."""
+
 from __future__ import annotations
+
+# pylint: disable=missing-function-docstring
 
 import json
 

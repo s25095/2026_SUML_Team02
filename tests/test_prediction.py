@@ -1,4 +1,8 @@
+"""Tests for prediction schemas, model loading and local explanations."""
+
 from __future__ import annotations
+
+# pylint: disable=missing-function-docstring
 
 import pytest
 import pandas as pd
@@ -80,6 +84,7 @@ def lightgbm_training_frame() -> pd.DataFrame:
 
 
 def test_features_to_frame_uses_model_column_order():
+    # pylint: disable=duplicate-code
     frame = features_to_frame(valid_features(), vehicle_age_reference_year=2021)
 
     assert list(frame.columns) == [

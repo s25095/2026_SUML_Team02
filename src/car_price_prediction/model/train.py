@@ -54,6 +54,26 @@ class ModelResult:
     r2: float | None
 
 
+@dataclass(frozen=True)
+class TrainingArtifactPaths:
+    """Output paths written by model training."""
+
+    model: Path = config.MODEL_PATH
+    metadata: Path = config.MODEL_METADATA_PATH
+    metrics: Path = config.TRAINING_METRICS_PATH
+    feature_options: Path = config.FEATURE_OPTIONS_PATH
+
+
+@dataclass(frozen=True)
+class TrainingArtifactSummary:
+    """Model-selection summary persisted next to the trained pipeline."""
+
+    results: list[ModelResult]
+    selected_model_name: str
+    rows_count: int
+    vehicle_age_reference_year: int
+
+
 def load_processed_data(
     input_path: Path = config.PROCESSED_DATA_PATH,
 ) -> pd.DataFrame:
@@ -453,27 +473,21 @@ def display_path(path: Path) -> str:
 
 def save_model_artifacts(
     pipeline: Pipeline,
-    results: list[ModelResult],
-    selected_model_name: str,
-    rows_count: int,
-    vehicle_age_reference_year: int,
-    model_path: Path = config.MODEL_PATH,
-    metadata_path: Path = config.MODEL_METADATA_PATH,
-    metrics_path: Path = config.TRAINING_METRICS_PATH,
-    feature_options_path: Path = config.FEATURE_OPTIONS_PATH,
+    summary: TrainingArtifactSummary,
+    paths: TrainingArtifactPaths = TrainingArtifactPaths(),
 ) -> None:
-    """Persist the trained pipeline, metadata and model-comparison metrics."""
+    """Persist the trained pipeline using summary and path wrapper dataclasses."""
 
-    model_path.parent.mkdir(parents=True, exist_ok=True)
+    paths.model.parent.mkdir(parents=True, exist_ok=True)
 
-    joblib.dump(pipeline, model_path)
+    joblib.dump(pipeline, paths.model)
 
     trained_at = datetime.now(UTC).isoformat()
-    metrics = results_to_dicts(results)
+    metrics = results_to_dicts(summary.results)
     metadata = {
         "trained_at_utc": trained_at,
-        "selected_model": selected_model_name,
-        "vehicle_age_reference_year": vehicle_age_reference_year,
+        "selected_model": summary.selected_model_name,
+        "vehicle_age_reference_year": summary.vehicle_age_reference_year,
         "selection_rule": (
             "Prefer the best explainable LightGBM-family candidate when it "
             "beats dummy_median and is within 5% of the best holdout RMSE; "
@@ -483,30 +497,27 @@ def save_model_artifacts(
         "feature_columns": config.FEATURE_COLUMNS,
         "numeric_feature_columns": config.NUMERIC_FEATURE_COLUMNS,
         "categorical_feature_columns": config.CATEGORICAL_FEATURE_COLUMNS,
-        "training_rows": rows_count,
+        "training_rows": summary.rows_count,
         "test_size": config.TEST_SIZE,
         "random_state": config.RANDOM_STATE,
-        "model_path": display_path(model_path),
-        "metrics_path": display_path(metrics_path),
-        "feature_options_path": display_path(feature_options_path),
+        "model_path": display_path(paths.model),
+        "metrics_path": display_path(paths.metrics),
+        "feature_options_path": display_path(paths.feature_options),
     }
 
-    with metadata_path.open("w", encoding="utf-8") as metadata_file:
+    with paths.metadata.open("w", encoding="utf-8") as metadata_file:
         json.dump(metadata, metadata_file, ensure_ascii=False, indent=2)
 
-    with metrics_path.open("w", encoding="utf-8") as metrics_file:
+    with paths.metrics.open("w", encoding="utf-8") as metrics_file:
         json.dump({"models": metrics}, metrics_file, ensure_ascii=False, indent=2)
 
 
 def train_and_save_model(
     data: pd.DataFrame,
     candidates: list[ModelCandidate] | None = None,
-    model_path: Path = config.MODEL_PATH,
-    metadata_path: Path = config.MODEL_METADATA_PATH,
-    metrics_path: Path = config.TRAINING_METRICS_PATH,
-    feature_options_path: Path = config.FEATURE_OPTIONS_PATH,
+    artifact_paths: TrainingArtifactPaths = TrainingArtifactPaths(),
 ) -> str:
-    """Evaluate candidates, train the selected model and save all artifacts."""
+    """Evaluate candidates, train the selected model and save wrapped artifacts."""
 
     candidates = candidates or default_model_candidates()
     results = evaluate_candidates(data, candidates=candidates)
@@ -518,17 +529,26 @@ def train_and_save_model(
     )
     save_model_artifacts(
         pipeline,
-        results,
-        selected_model_name,
-        rows_count=len(data),
-        vehicle_age_reference_year=vehicle_age_reference_year_for_training(data),
-        model_path=model_path,
-        metadata_path=metadata_path,
-        metrics_path=metrics_path,
-        feature_options_path=feature_options_path,
+        TrainingArtifactSummary(
+            results=results,
+            selected_model_name=selected_model_name,
+            rows_count=len(data),
+            vehicle_age_reference_year=vehicle_age_reference_year_for_training(data),
+        ),
+        paths=artifact_paths,
     )
-    save_feature_options(data, feature_options_path)
+    save_feature_options(data, artifact_paths.feature_options)
     return selected_model_name
+
+
+def log_training_artifacts(selected_model_name: str) -> None:
+    """Log the standard model-training artifact summary."""
+
+    logger.info("Selected model: %s", selected_model_name)
+    logger.info("Saved model: %s", config.MODEL_PATH)
+    logger.info("Saved metadata: %s", config.MODEL_METADATA_PATH)
+    logger.info("Saved metrics: %s", config.TRAINING_METRICS_PATH)
+    logger.info("Saved feature options: %s", config.FEATURE_OPTIONS_PATH)
 
 
 def main() -> None:
@@ -537,12 +557,7 @@ def main() -> None:
     setup_logging()
     data = load_processed_data()
     selected_model_name = train_and_save_model(data)
-
-    logger.info("Selected model: %s", selected_model_name)
-    logger.info("Saved model: %s", config.MODEL_PATH)
-    logger.info("Saved metadata: %s", config.MODEL_METADATA_PATH)
-    logger.info("Saved metrics: %s", config.TRAINING_METRICS_PATH)
-    logger.info("Saved feature options: %s", config.FEATURE_OPTIONS_PATH)
+    log_training_artifacts(selected_model_name)
 
 
 if __name__ == "__main__":

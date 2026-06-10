@@ -1,4 +1,8 @@
+"""Tests for runtime settings and derived config values."""
+
 from __future__ import annotations
+
+# pylint: disable=missing-function-docstring
 
 import pytest
 

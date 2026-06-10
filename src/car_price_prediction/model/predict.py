@@ -119,6 +119,51 @@ def contribution_direction(
     return "neutral"
 
 
+def lightgbm_contribution_row(
+    bundle: ModelBundle,
+    transformed_frame: pd.DataFrame,
+) -> np.ndarray:
+    """Return one LightGBM pred_contrib row and validate its feature count."""
+
+    model = required_pipeline_step(bundle.model, "model")
+    raw_contributions = model.predict(transformed_frame, pred_contrib=True)
+    if hasattr(raw_contributions, "toarray"):
+        raw_contributions = raw_contributions.toarray()
+
+    contributions = np.asarray(raw_contributions, dtype=float)
+    if contributions.ndim == 1:
+        contributions = contributions.reshape(1, -1)
+
+    row_contributions = contributions[0]
+    expected_columns = len(transformed_frame.columns) + 1
+    if len(row_contributions) != expected_columns:
+        raise ValueError(
+            "LightGBM contribution count does not match transformed feature count: "
+            f"{len(row_contributions)} != {expected_columns}"
+        )
+    return row_contributions
+
+
+def grouped_source_contributions(
+    transformed_feature_columns: pd.Index,
+    feature_contributions: np.ndarray,
+) -> dict[str, float]:
+    """Aggregate transformed-feature contributions back to source columns."""
+
+    grouped_contributions: dict[str, float] = {}
+    for feature_name, contribution in zip(
+        transformed_feature_columns,
+        feature_contributions,
+        strict=True,
+    ):
+        source_feature = source_feature_name(str(feature_name))
+        grouped_contributions[source_feature] = grouped_contributions.get(
+            source_feature,
+            0.0,
+        ) + float(contribution)
+    return grouped_contributions
+
+
 def lightgbm_prediction_explanations(
     bundle: ModelBundle,
     transformed_frame: pd.DataFrame,
@@ -133,34 +178,12 @@ def lightgbm_prediction_explanations(
     if not is_lightgbm_bundle(bundle):
         return None, []
 
-    model = required_pipeline_step(bundle.model, "model")
-    raw_contributions = model.predict(transformed_frame, pred_contrib=True)
-    if hasattr(raw_contributions, "toarray"):
-        raw_contributions = raw_contributions.toarray()
-    contributions = np.asarray(raw_contributions, dtype=float)
-    if contributions.ndim == 1:
-        contributions = contributions.reshape(1, -1)
-
-    feature_names = [str(column) for column in transformed_frame.columns]
-    row_contributions = contributions[0]
-    if len(row_contributions) != len(feature_names) + 1:
-        raise ValueError(
-            "LightGBM contribution count does not match transformed feature count: "
-            f"{len(row_contributions)} != {len(feature_names) + 1}"
-        )
-
+    row_contributions = lightgbm_contribution_row(bundle, transformed_frame)
     base_value = float(row_contributions[-1])
-    grouped_contributions: dict[str, float] = {}
-    for feature_name, contribution in zip(
-        feature_names,
+    grouped_contributions = grouped_source_contributions(
+        transformed_frame.columns,
         row_contributions[:-1],
-        strict=True,
-    ):
-        source_feature = source_feature_name(feature_name)
-        grouped_contributions[source_feature] = grouped_contributions.get(
-            source_feature,
-            0.0,
-        ) + float(contribution)
+    )
 
     explanations = []
     for source_feature, contribution in sorted(

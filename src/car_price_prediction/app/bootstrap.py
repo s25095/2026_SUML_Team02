@@ -11,7 +11,11 @@ from typing import Literal
 from car_price_prediction import config
 from car_price_prediction.app.main import serve
 from car_price_prediction.logging_config import setup_logging
-from car_price_prediction.model.train import load_processed_data, train_and_save_model
+from car_price_prediction.model.train import (
+    load_processed_data,
+    log_training_artifacts,
+    train_and_save_model,
+)
 from car_price_prediction.pipeline import run_pipeline
 
 
@@ -78,11 +82,7 @@ def bootstrap_artifacts(
         logger.info("Bootstrap: training model from existing processed dataset")
         training_data = load_processed_data()
         selected_model_name = train_and_save_model(training_data)
-        logger.info("Selected model: %s", selected_model_name)
-        logger.info("Saved model: %s", config.MODEL_PATH)
-        logger.info("Saved metadata: %s", config.MODEL_METADATA_PATH)
-        logger.info("Saved metrics: %s", config.TRAINING_METRICS_PATH)
-        logger.info("Saved feature options: %s", config.FEATURE_OPTIONS_PATH)
+        log_training_artifacts(selected_model_name)
         return BootstrapResult(
             action="trained",
             missing_artifacts=missing_artifacts,

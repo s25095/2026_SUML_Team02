@@ -9,19 +9,7 @@ from car_price_prediction import config
 from car_price_prediction.feature_options import load_feature_options
 
 
-DEFAULT_VALUES: dict[str, Any] = {
-    "Condition": "Used",
-    "Vehicle_brand": "Toyota",
-    "Production_year": 2018,
-    "Mileage_km": 120000,
-    "Power_HP": 150,
-    "Displacement_cm3": 1998,
-    "Fuel_type": "Gasoline",
-    "Drive": "Front wheels",
-    "Transmission": "Manual",
-    "Type": "SUV",
-    "Doors_number": 5,
-}
+DEFAULT_VALUES: dict[str, object] = config.DEFAULT_FEATURE_VALUES
 
 OPTION_LABELS: dict[str, dict[str, str]] = {
     "Condition": {

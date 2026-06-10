@@ -1,4 +1,8 @@
+"""Tests for FastAPI web and API behavior."""
+
 from __future__ import annotations
+
+# pylint: disable=missing-function-docstring
 
 from fastapi.testclient import TestClient
 
@@ -41,6 +45,7 @@ def stub_form_fields():
 
 
 def api_payload():
+    # pylint: disable=duplicate-code
     return {
         "Condition": "Used",
         "Vehicle_brand": "Toyota",

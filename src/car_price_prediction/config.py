@@ -127,6 +127,20 @@ SOURCE_MODEL_COLUMNS = [TARGET_COLUMN, *SOURCE_FEATURE_COLUMNS]
 MODEL_COLUMNS = [TARGET_COLUMN, *FEATURE_COLUMNS]
 PROCESSED_COLUMNS = [TARGET_COLUMN, PRODUCTION_YEAR_COLUMN, *FEATURE_COLUMNS]
 
+DEFAULT_FEATURE_VALUES: dict[str, object] = {
+    "Condition": "Used",
+    "Vehicle_brand": "Toyota",
+    PRODUCTION_YEAR_COLUMN: 2018,
+    "Mileage_km": 120000,
+    "Power_HP": 150,
+    "Displacement_cm3": 1998,
+    "Fuel_type": "Gasoline",
+    "Drive": "Front wheels",
+    "Transmission": "Manual",
+    "Type": "SUV",
+    "Doors_number": 5,
+}
+
 NUMERIC_FEATURE_COLUMNS = [
     VEHICLE_AGE_COLUMN,
     "Mileage_km",

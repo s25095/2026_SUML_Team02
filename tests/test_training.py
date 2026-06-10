@@ -1,4 +1,8 @@
+"""Tests for model training, selection and artifact persistence."""
+
 from __future__ import annotations
+
+# pylint: disable=missing-function-docstring
 
 import json
 
@@ -11,6 +15,7 @@ from car_price_prediction.data.preprocessing import preprocess_data
 from car_price_prediction.model.train import (
     ModelCandidate,
     ModelResult,
+    TrainingArtifactPaths,
     aggregate_feature_importance,
     evaluate_candidates,
     model_feature_importance,
@@ -89,10 +94,12 @@ def test_train_and_save_model_creates_artifacts(tmp_path):
     selected = train_and_save_model(
         training_frame(),
         candidates=candidates,
-        model_path=tmp_path / "model.joblib",
-        metadata_path=tmp_path / "metadata.json",
-        metrics_path=tmp_path / "metrics.json",
-        feature_options_path=tmp_path / "feature_options.json",
+        artifact_paths=TrainingArtifactPaths(
+            model=tmp_path / "model.joblib",
+            metadata=tmp_path / "metadata.json",
+            metrics=tmp_path / "metrics.json",
+            feature_options=tmp_path / "feature_options.json",
+        ),
     )
 
     assert selected in {"dummy_median", "ridge"}

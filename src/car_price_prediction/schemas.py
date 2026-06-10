@@ -2,26 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from car_price_prediction import config
 
 
-EXAMPLE_FEATURES: dict[str, Any] = {
-    "Condition": "Used",
-    "Vehicle_brand": "Toyota",
-    "Production_year": 2018,
-    "Mileage_km": 120000,
-    "Power_HP": 150,
-    "Displacement_cm3": 1998,
-    "Fuel_type": "Gasoline",
-    "Drive": "Front wheels",
-    "Transmission": "Manual",
-    "Type": "SUV",
-    "Doors_number": 5,
-}
+EXAMPLE_FEATURES: dict[str, object] = config.DEFAULT_FEATURE_VALUES
 
 
 class CarFeatures(BaseModel):
