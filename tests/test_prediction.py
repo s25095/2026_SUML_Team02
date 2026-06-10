@@ -99,13 +99,25 @@ def test_features_to_frame_uses_model_column_order():
     assert frame.loc[0, "Vehicle_age_years"] == 3
 
 
-def test_predict_price_includes_lightgbm_local_explanations(monkeypatch):
+@pytest.mark.parametrize(
+    ("model_name", "extra_trees"),
+    [
+        ("lightgbm", False),
+        ("lightgbm_xt_autogluon_inspired", True),
+    ],
+)
+def test_predict_price_includes_lightgbm_local_explanations(
+    monkeypatch,
+    model_name: str,
+    extra_trees: bool,
+):
     candidate = ModelCandidate(
-        "lightgbm",
+        model_name,
         LGBMRegressor(
             n_estimators=30,
             learning_rate=0.1,
             num_leaves=7,
+            extra_trees=extra_trees,
             min_child_samples=1,
             random_state=config.RANDOM_STATE,
             n_jobs=1,
@@ -114,13 +126,13 @@ def test_predict_price_includes_lightgbm_local_explanations(monkeypatch):
     )
     pipeline = train_final_pipeline(
         lightgbm_training_frame(),
-        selected_model_name="lightgbm",
+        selected_model_name=model_name,
         candidates=[candidate],
     )
     bundle = ModelBundle(
         model=pipeline,
         metadata={
-            "selected_model": "lightgbm",
+            "selected_model": model_name,
             "trained_at_utc": "test-version",
             "vehicle_age_reference_year": 2019,
         },

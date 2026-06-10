@@ -10,9 +10,11 @@ from sklearn.linear_model import Ridge
 from car_price_prediction.data.preprocessing import preprocess_data
 from car_price_prediction.model.train import (
     ModelCandidate,
+    ModelResult,
     aggregate_feature_importance,
     evaluate_candidates,
     model_feature_importance,
+    select_model,
     train_and_save_model,
     train_final_pipeline,
 )
@@ -109,6 +111,17 @@ def test_train_and_save_model_creates_artifacts(tmp_path):
     assert len(metrics["models"]) == 2
     assert feature_options["fields"]["Vehicle_brand"]
     assert feature_options["fields"]["Doors_number"] == ["5"]
+
+
+def test_select_model_prefers_best_lightgbm_family_candidate():
+    results = [
+        ModelResult("lightgbm_xt_autogluon_inspired", rmse=21_500, mae=9_000, r2=0.93),
+        ModelResult("lightgbm", rmse=22_000, mae=9_300, r2=0.92),
+        ModelResult("ridge", rmse=23_000, mae=10_000, r2=0.91),
+        ModelResult("dummy_median", rmse=90_000, mae=44_000, r2=-0.1),
+    ]
+
+    assert select_model(results) == "lightgbm_xt_autogluon_inspired"
 
 
 def test_feature_importance_maps_transformed_features_to_source_columns():

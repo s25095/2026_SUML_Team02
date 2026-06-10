@@ -86,7 +86,7 @@ uv run preprocess-data
 uv run jupyter lab notebooks/car_price_eda_model_selection.ipynb
 ```
 
-Notebook dokumentuje rozklad targetu, braki danych, outliery, wybrane cechy i porownanie modeli. Potrafi tez zapisac model tym samym writerem co CLI, ale powtarzalny trening produkcyjny najlepiej uruchamiac przez `uv run build-model` albo etapowo przez `uv run train-model`.
+Notebook dokumentuje rozklad targetu, braki danych, outliery, wybrane cechy i porownanie modeli. Zawiera tez jawne kandydaty LightGBM inspirowane eksploracyjnym uruchomieniem AutoGluon, ale nie uzywa AutoGluon jako automatycznego selektora modelu produkcyjnego. Potrafi tez zapisac model tym samym writerem co CLI, ale powtarzalny trening produkcyjny najlepiej uruchamiac przez `uv run build-model` albo etapowo przez `uv run train-model`.
 
 4. Wytrenuj model produkcyjny:
 
@@ -94,7 +94,7 @@ Notebook dokumentuje rozklad targetu, braki danych, outliery, wybrane cechy i po
 uv run train-model
 ```
 
-Skrypt porownuje baseline, modele klasyczne i LightGBM. LightGBM jest preferowany, jesli bije baseline i jest w granicy 5% najlepszego RMSE. Artefakty trafiaja do `models/`.
+Skrypt porownuje baseline, modele klasyczne i kilka jawnych wariantow LightGBM, w tym konfiguracje inspirowane AutoGluon. Najlepszy wyjasnialny wariant LightGBM jest preferowany, jesli bije baseline i jest w granicy 5% najlepszego RMSE. Artefakty trafiaja do `models/`.
 
 5. Uruchom aplikacje:
 
@@ -106,6 +106,12 @@ Strona HTML jest dostepna pod `http://127.0.0.1:8000/`.
 Aplikacja wymaga artefaktow z `models/`, wiec przed pierwszym uruchomieniem
 odpal `uv run bootstrap-app`, `uv run build-model` albo przynajmniej
 `uv run train-model` na gotowym processed CSV.
+
+## AutoGluon i wybor modelu
+
+AutoGluon zostal uzyty eksploracyjnie do sprawdzenia, czy automatyczne porownanie modeli sugeruje lepszy kierunek niz obecny LightGBM. Eksperyment wskazal, ze najlepszy pojedynczy model AutoGluon byl typu LightGBMXT, czyli LightGBM z `extra_trees=True` i wieksza liczba boosting rounds. Zysk metryk byl niewielki wzgledem obecnego modelu, a produkcyjne uzycie AutoGluon jako automatycznego selektora modelu ma istotne minusy: ciezsze zaleznosci, wieksze artefakty, mozliwy inny typ modelu po retreningu, zmienny czas inferencji i utrata obecnych lokalnych wyjasnien `lightgbm_pred_contrib`.
+
+Dlatego AutoGluon nie jest wymagany przez aplikacje i nie jest czescia produkcyjnego pipelineu. Wnioski z eksperymentu zostaly przeniesione do jawnych kandydatow LightGBM w naszym wlasnym treningu, m.in. `lightgbm_xt_autogluon_inspired` z `extra_trees=True`. Dzieki temu model selection pozostaje kontrolowana decyzja projektowa, a API dalej moze zwracac lokalny wplyw cech na konkretna predykcje ceny.
 
 ## API
 

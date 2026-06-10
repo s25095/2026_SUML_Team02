@@ -137,6 +137,31 @@ def default_model_candidates() -> list[ModelCandidate]:
                 verbose=-1,
             ),
         ),
+        ModelCandidate(
+            "lightgbm_xt_autogluon_inspired",
+            LGBMRegressor(
+                n_estimators=2180,
+                learning_rate=0.05,
+                num_leaves=31,
+                extra_trees=True,
+                random_state=config.RANDOM_STATE,
+                n_jobs=-1,
+                verbose=-1,
+            ),
+        ),
+        ModelCandidate(
+            "lightgbm_large_autogluon_inspired",
+            LGBMRegressor(
+                n_estimators=180,
+                learning_rate=0.03,
+                num_leaves=128,
+                colsample_bytree=0.9,
+                min_child_samples=3,
+                random_state=config.RANDOM_STATE,
+                n_jobs=-1,
+                verbose=-1,
+            ),
+        ),
     ]
 
 
@@ -254,25 +279,40 @@ def evaluate_candidates(
 
 def select_model(
     results: list[ModelResult],
-    preferred_model_name: str = "lightgbm",
+    preferred_model_name: str | tuple[str, ...] = (
+        "lightgbm_xt_autogluon_inspired",
+        "lightgbm_large_autogluon_inspired",
+        "lightgbm",
+    ),
     baseline_model_name: str = "dummy_median",
     preferred_rmse_tolerance: float = 1.05,
 ) -> str:
-    """Choose LightGBM when close to best; otherwise choose best holdout RMSE."""
+    """Choose the best explainable LightGBM-family model when close to best."""
 
     if not results:
         raise ValueError("At least one model result is required.")
 
     best = results[0]
     by_name = {result.name: result for result in results}
-    preferred = by_name.get(preferred_model_name)
+    preferred_model_names = (
+        (preferred_model_name,)
+        if isinstance(preferred_model_name, str)
+        else preferred_model_name
+    )
+    preferred_results = [
+        by_name[name] for name in preferred_model_names if name in by_name
+    ]
     baseline = by_name.get(baseline_model_name)
 
-    if preferred and baseline:
-        preferred_beats_baseline = preferred.rmse < baseline.rmse
-        preferred_close_to_best = preferred.rmse <= best.rmse * preferred_rmse_tolerance
-        if preferred_beats_baseline and preferred_close_to_best:
-            return preferred.name
+    if preferred_results and baseline:
+        eligible_preferred = [
+            result
+            for result in preferred_results
+            if result.rmse < baseline.rmse
+            and result.rmse <= best.rmse * preferred_rmse_tolerance
+        ]
+        if eligible_preferred:
+            return min(eligible_preferred, key=lambda result: result.rmse).name
 
     return best.name
 
@@ -435,8 +475,9 @@ def save_model_artifacts(
         "selected_model": selected_model_name,
         "vehicle_age_reference_year": vehicle_age_reference_year,
         "selection_rule": (
-            "Prefer lightgbm when it beats dummy_median and is within 5% "
-            "of the best holdout RMSE; otherwise use the best RMSE model."
+            "Prefer the best explainable LightGBM-family candidate when it "
+            "beats dummy_median and is within 5% of the best holdout RMSE; "
+            "otherwise use the best RMSE model."
         ),
         "target_column": config.TARGET_COLUMN,
         "feature_columns": config.FEATURE_COLUMNS,
