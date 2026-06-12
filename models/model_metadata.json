@@ -1,0 +1,41 @@
+{
+  "trained_at_utc": "2026-06-09T18:32:33.191131+00:00",
+  "selected_model": "lightgbm",
+  "vehicle_age_reference_year": 2021,
+  "selection_rule": "Prefer lightgbm when it beats dummy_median and is within 5% of the best holdout RMSE; otherwise use the best RMSE model.",
+  "target_column": "Price",
+  "feature_columns": [
+    "Condition",
+    "Vehicle_brand",
+    "Vehicle_age_years",
+    "Mileage_km",
+    "Power_HP",
+    "Displacement_cm3",
+    "Fuel_type",
+    "Drive",
+    "Transmission",
+    "Type",
+    "Doors_number"
+  ],
+  "numeric_feature_columns": [
+    "Vehicle_age_years",
+    "Mileage_km",
+    "Power_HP",
+    "Displacement_cm3",
+    "Doors_number"
+  ],
+  "categorical_feature_columns": [
+    "Condition",
+    "Vehicle_brand",
+    "Fuel_type",
+    "Drive",
+    "Transmission",
+    "Type"
+  ],
+  "training_rows": 202830,
+  "test_size": 0.2,
+  "random_state": 42,
+  "model_path": "models\\car_price_model.joblib",
+  "metrics_path": "models\\training_metrics.json",
+  "feature_options_path": "models\\feature_options.json"
+}
