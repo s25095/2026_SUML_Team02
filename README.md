@@ -107,6 +107,40 @@ Aplikacja wymaga artefaktow z `models/`, wiec przed pierwszym uruchomieniem
 odpal `uv run bootstrap-app`, `uv run build-model` albo przynajmniej
 `uv run train-model` na gotowym processed CSV.
 
+## Docker
+
+Obraz Dockera jest przygotowany jako lekki runtime z gotowym modelem w srodku.
+Do obrazu trafiaja tylko artefakty wymagane przez aplikacje:
+`models/car_price_model.joblib`, `models/model_metadata.json`,
+`models/training_metrics.json` i `models/feature_options.json`.
+Surowy dataset, processed CSV, token Kaggle z `.env` oraz eksperymentalne
+artefakty AutoGluon nie sa kopiowane.
+
+Przed buildem upewnij sie, ze artefakty modelu istnieja:
+
+```bash
+uv run build-model
+```
+
+Najprostsze uruchomienie przez Docker Compose:
+
+```bash
+docker compose up --build
+```
+
+Compose zbuduje obraz z `Dockerfile`, wystawi port `8000` i uruchomi aplikacje.
+
+Alternatywnie mozna uzyc samego Dockera:
+
+```bash
+docker build -t car-price-prediction .
+docker run --rm -p 8000:8000 car-price-prediction
+```
+
+Po starcie aplikacja jest dostepna pod `http://127.0.0.1:8000/`, a health
+check pod `http://127.0.0.1:8000/health`. W kontenerze domyslnie ustawione sa
+`APP_HOST=0.0.0.0`, `APP_PORT=8000` i `APP_RELOAD=false`.
+
 ## AutoGluon i wybor modelu
 
 AutoGluon zostal uzyty eksploracyjnie do sprawdzenia, czy automatyczne porownanie modeli sugeruje lepszy kierunek niz obecny LightGBM. Eksperyment wskazal, ze najlepszy pojedynczy model AutoGluon byl typu LightGBMXT, czyli LightGBM z `extra_trees=True` i wieksza liczba boosting rounds. Zysk metryk byl niewielki wzgledem obecnego modelu, a produkcyjne uzycie AutoGluon jako automatycznego selektora modelu ma istotne minusy: ciezsze zaleznosci, wieksze artefakty, mozliwy inny typ modelu po retreningu, zmienny czas inferencji i utrata obecnych lokalnych wyjasnien `lightgbm_pred_contrib`.

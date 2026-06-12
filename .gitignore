@@ -27,6 +27,10 @@ data/processed/*
 # Trained models
 models/*
 !models/placeholder.gitkeep
+!models/car_price_model.joblib
+!models/model_metadata.json
+!models/training_metrics.json
+!models/feature_options.json
 
 # Logs
 logs/*
