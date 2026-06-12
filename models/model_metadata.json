@@ -1,8 +1,8 @@
 {
-  "trained_at_utc": "2026-06-09T18:32:33.191131+00:00",
-  "selected_model": "lightgbm",
+  "trained_at_utc": "2026-06-12T21:20:01.163850+00:00",
+  "selected_model": "lightgbm_xt_autogluon_inspired",
   "vehicle_age_reference_year": 2021,
-  "selection_rule": "Prefer lightgbm when it beats dummy_median and is within 5% of the best holdout RMSE; otherwise use the best RMSE model.",
+  "selection_rule": "Prefer the best explainable LightGBM-family candidate when it beats dummy_median and is within 5% of the best holdout RMSE; otherwise use the best RMSE model.",
   "target_column": "Price",
   "feature_columns": [
     "Condition",
