@@ -37,6 +37,7 @@ download-data = "car_price_prediction.data.download:main"
 preprocess-data = "car_price_prediction.data.preprocessing:main"
 train-model = "car_price_prediction.model.train:main"
 serve = "car_price_prediction.app.main:serve"
+pylint = "car_price_prediction.devtools:run_pylint"
 
 [build-system]
 requires = ["hatchling"]
